@@ -28,54 +28,56 @@ import com.artipie.asto.Key;
 import com.artipie.docker.Digest;
 import com.artipie.docker.Tag;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * Manifest link reference.
  * <p>
  * Can be resolved by image tag or digest.
  * </p>
+ *
  * @since 0.1
  */
-public final class ManifestRef implements Key {
+public interface ManifestRef extends Key {
 
     /**
-     * Path parts.
+     * Manifest reference from {@link Digest}.
+     *
+     * @since 0.2
      */
-    private final List<String> parts;
+    final class FromDigest implements ManifestRef {
 
-    /**
-     * Manifest link from a digest.
-     * @param digest Digest
-     */
-    public ManifestRef(final Digest digest) {
-        this(
-            Arrays.asList("revisions", digest.alg(), digest.digest(), "link")
-        );
+        private final Digest digest;
+
+        public FromDigest(final Digest digest) {
+            this.digest = digest;
+        }
+
+        public String string() {
+            return new Key.From(
+                Arrays.asList("revisions", digest.alg(), digest.digest(), "link")
+            ).string();
+        }
     }
 
     /**
-     * Manifest link from a tag.
-     * @param tag Image tag
+     * Manifest reference from {@link Tag}.
+     *
+     * @since 0.2
      */
-    public ManifestRef(final Tag tag) {
-        this(
-            Arrays.asList("tags", tag.value(), "current/link")
-        );
-    }
+    final class FromTag implements ManifestRef {
 
-    /**
-     * Primary constructor.
-     * @param parts Path parts
-     */
-    private ManifestRef(final List<String> parts) {
-        this.parts = Collections.unmodifiableList(parts);
-    }
+        private final Tag tag;
 
-    @Override
-    public String string() {
-        return String.join("/", this.parts);
+        public FromTag(final Tag tag) {
+            this.tag = tag;
+        }
+
+        @Override
+        public String string() {
+            return new Key.From(
+                Arrays.asList("tags", tag.value(), "current", "link")
+            ).string();
+        }
     }
 
     /**
@@ -85,7 +87,7 @@ public final class ManifestRef implements Key {
      *
      * @since 0.2
      */
-    public static final class FromString implements Key {
+    final class FromString implements ManifestRef {
 
         /**
          * Manifest reference string.
@@ -107,9 +109,9 @@ public final class ManifestRef implements Key {
             final Digest.FromString digest = new Digest.FromString(this.value);
             final Tag.Valid tag = new Tag.Valid(this.value);
             if (digest.valid()) {
-                ref = new ManifestRef(digest);
+                ref = new ManifestRef.FromDigest(digest);
             } else if (tag.valid()) {
-                ref = new ManifestRef(tag);
+                ref = new ManifestRef.FromTag(tag);
             } else {
                 throw new IllegalStateException(
                     String.format("Unsupported reference: `%s`", this.value)

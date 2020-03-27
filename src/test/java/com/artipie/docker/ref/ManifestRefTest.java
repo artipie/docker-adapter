@@ -83,7 +83,7 @@ public final class ManifestRefTest {
     @Test
     void resolvesDigestLink() {
         MatcherAssert.assertThat(
-            new ManifestRef(new Digest.Sha256("0000")).string(),
+            new ManifestRef.FromDigest(new Digest.Sha256("0000")).string(),
             Matchers.equalTo("revisions/sha256/0000/link")
         );
     }
@@ -91,7 +91,7 @@ public final class ManifestRefTest {
     @Test
     void resolvesTagLink() {
         MatcherAssert.assertThat(
-            new ManifestRef(new Tag.Valid("latest")).string(),
+            new ManifestRef.FromTag(new Tag.Valid("latest")).string(),
             Matchers.equalTo("tags/latest/current/link")
         );
     }

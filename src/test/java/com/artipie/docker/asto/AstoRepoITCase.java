@@ -67,9 +67,9 @@ final class AstoRepoITCase {
 
     @Test
     void shouldReadManifest() throws Exception {
-        final Optional<Content> manifest = this.repo.manifest(new ManifestRef(new Tag.Valid("1")))
-            .toCompletableFuture()
-            .get();
+        final Optional<Content> manifest = this.repo.manifest(
+            new ManifestRef.FromTag(new Tag.Valid("1"))
+        ).toCompletableFuture().get();
         final byte[] content = new Remaining(
             Flowable.fromPublisher(manifest.get())
                 .toList()
@@ -87,9 +87,9 @@ final class AstoRepoITCase {
 
     @Test
     void shouldReadNoManifestIfAbsent() throws Exception {
-        final Optional<Content> manifest = this.repo.manifest(new ManifestRef(new Tag.Valid("2")))
-            .toCompletableFuture()
-            .get();
+        final Optional<Content> manifest = this.repo.manifest(
+            new ManifestRef.FromTag(new Tag.Valid("2"))
+        ).toCompletableFuture().get();
         MatcherAssert.assertThat(manifest.isPresent(), new IsEqual<>(false));
     }
 }
