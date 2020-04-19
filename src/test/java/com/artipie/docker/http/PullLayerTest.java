@@ -38,7 +38,10 @@ import java.util.Collections;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.AllOf;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.llorllale.cactoos.matchers.Assertion;
+import org.llorllale.cactoos.matchers.Throws;
 
 /**
  * Tests for {@link DockerSlice}.
@@ -89,5 +92,31 @@ class PullLayerTest {
                 )
             )
         );
+    }
+
+    /**
+     * @todo #81:30min PullLayer is not behaving correctly
+     *  PullLayer should throw an exception in case of an unexpected path,
+     *  but it isn't working. Correct the code and enable this test.
+     */
+    @Test
+    @Disabled
+    void shouldThrowExceptionOnUnexpectedPath() {
+        new Assertion<>(
+            "Did not throw exception",
+            () -> this.slice.response(
+                new RequestLine(
+                    "GET",
+                    "/v2/unexpected/path/exception",
+                    "HTTP/1.1"
+                ).toString(),
+                Collections.emptyList(),
+                Flowable.empty()
+            ),
+            new Throws<>(
+                "Unexpected path: /v2/unexpected/path/exception",
+                IllegalStateException.class
+            )
+        ).affirm();
     }
 }
