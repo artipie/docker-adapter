@@ -95,7 +95,8 @@ class StartUploadTest {
             )
         );
     }
-    /**
+
+    /*
      * @todo #81:30min StartUpload is not behaving correctly
      *  StartUpload should throw an exception in case of an unexpected path,
      *  but it isn't working. Correct the code and enable this test.
