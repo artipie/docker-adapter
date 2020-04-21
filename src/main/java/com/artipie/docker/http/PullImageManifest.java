@@ -25,15 +25,21 @@ package com.artipie.docker.http;
 
 import com.artipie.docker.Docker;
 import com.artipie.docker.RepoName;
+import com.artipie.docker.manifest.Manifest;
 import com.artipie.docker.ref.ManifestRef;
 import com.artipie.http.Response;
 import com.artipie.http.Slice;
+import com.artipie.http.async.AsyncResponse;
 import com.artipie.http.rq.RequestLineFrom;
+import com.artipie.http.rq.RqHeaders;
 import com.artipie.http.rs.RsStatus;
 import com.artipie.http.rs.RsWithBody;
+import com.artipie.http.rs.RsWithHeaders;
 import com.artipie.http.rs.RsWithStatus;
 import java.nio.ByteBuffer;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.reactivestreams.Publisher;
@@ -43,6 +49,7 @@ import org.reactivestreams.Publisher;
  * See <a href="https://docs.docker.com/registry/spec/api/#pulling-an-image">Pulling An Image</a>.
  *
  * @since 0.2
+ * @checkstyle ClassDataAbstractionCouplingCheck (500 lines)
  */
 final class PullImageManifest {
 
@@ -109,23 +116,33 @@ final class PullImageManifest {
                     String.format("Unexpected path: %s", path)
                 );
             }
-            final String name = matcher.group("name");
+            final RepoName name = new RepoName.Valid(matcher.group("name"));
             final ManifestRef ref = new ManifestRef.FromString(matcher.group("reference"));
-            return connection -> this.docker.repo(new RepoName.Valid(name)).manifest(ref)
-                .thenCompose(
-                    manifest -> {
-                        final Response response;
-                        if (manifest.isPresent()) {
-                            response = new RsWithBody(
-                                new RsWithStatus(RsStatus.OK),
-                                manifest.get()
-                            );
-                        } else {
-                            response = new RsWithStatus(RsStatus.NOT_FOUND);
-                        }
-                        return response.send(connection);
-                    }
-                );
+            return new AsyncResponse(
+                this.docker.repo(name).manifest(ref).thenCompose(
+                    manifest -> manifest.map(
+                        original -> original.convert(new RqHeaders(headers, "Accept"))
+                            .thenCompose(Get::response)
+                    ).orElseGet(
+                        () -> CompletableFuture.completedStage(new RsWithStatus(RsStatus.NOT_FOUND))
+                    )
+                )
+            );
+        }
+
+        /**
+         * Create HTTP response from {@link Manifest}.
+         *
+         * @param manifest Manifest.
+         * @return HTTP response.
+         */
+        private static CompletionStage<Response> response(final Manifest manifest) {
+            return manifest.mediaType().thenApply(
+                type -> new RsWithBody(
+                    new RsWithHeaders(new RsWithStatus(RsStatus.OK), "Content-Type", type),
+                    manifest.content()
+                )
+            );
         }
     }
 }

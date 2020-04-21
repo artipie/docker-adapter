@@ -24,12 +24,13 @@
 
 package com.artipie.docker.asto;
 
-import com.artipie.asto.Content;
 import com.artipie.asto.Key;
 import com.artipie.asto.Storage;
 import com.artipie.docker.Digest;
 import com.artipie.docker.Repo;
 import com.artipie.docker.RepoName;
+import com.artipie.docker.manifest.JsonManifest;
+import com.artipie.docker.manifest.Manifest;
 import com.artipie.docker.misc.BytesFlowAs;
 import com.artipie.docker.ref.BlobRef;
 import com.artipie.docker.ref.ManifestRef;
@@ -69,14 +70,14 @@ public final class AstoRepo implements Repo {
     }
 
     @Override
-    public CompletionStage<Optional<Content>> manifest(final ManifestRef ref) {
+    public CompletionStage<Optional<Manifest>> manifest(final ManifestRef ref) {
         final Key key = new Key.From(
             RegistryRoot.V2, "repositories", this.name.value(),
             "_manifests", ref.link().string()
         );
         return this.asto.exists(key).thenCompose(
             exists -> {
-                final CompletionStage<Optional<Content>> stage;
+                final CompletionStage<Optional<Manifest>> stage;
                 if (exists) {
                     stage = this.asto.value(key)
                         .thenCompose(pub -> new BytesFlowAs.Text(pub).future())
@@ -85,7 +86,7 @@ public final class AstoRepo implements Repo {
                         .thenCompose(
                             blob -> this.asto.value(
                                 new Key.From(RegistryRoot.V2, blob.string())
-                            ).thenApply(Optional::of)
+                            ).thenApply(JsonManifest::new).thenApply(Optional::of)
                         );
                 } else {
                     stage = CompletableFuture.completedFuture(Optional.empty());

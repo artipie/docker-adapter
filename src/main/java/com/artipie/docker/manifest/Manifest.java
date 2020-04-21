@@ -24,6 +24,7 @@
 package com.artipie.docker.manifest;
 
 import com.artipie.asto.Content;
+import java.util.Collection;
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -40,6 +41,14 @@ public interface Manifest {
      * @return Type string.
      */
     CompletionStage<String> mediaType();
+
+    /**
+     * Converts manifest to one of types.
+     *
+     * @param options Types the manifest may be converted to.
+     * @return Converted manifest.
+     */
+    CompletionStage<Manifest> convert(Collection<String> options);
 
     /**
      * Read manifest binary content.

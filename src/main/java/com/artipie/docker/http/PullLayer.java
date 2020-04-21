@@ -27,6 +27,7 @@ import com.artipie.docker.Digest;
 import com.artipie.docker.Docker;
 import com.artipie.http.Response;
 import com.artipie.http.Slice;
+import com.artipie.http.async.AsyncResponse;
 import com.artipie.http.rq.RequestLineFrom;
 import com.artipie.http.rs.RsStatus;
 import com.artipie.http.rs.RsWithBody;
@@ -81,11 +82,15 @@ final class PullLayer implements Slice {
             );
         }
         final Digest digest = new Digest.FromString(matcher.group("digest"));
-        return connection -> this.docker.blobStore().blob(digest).thenCompose(
-            layer -> new RsWithBody(
-                new RsWithStatus(RsStatus.OK),
-                layer
-            ).send(connection)
+        return new AsyncResponse(
+            this.docker.blobStore().blob(digest).thenApply(
+                layer -> layer.<Response>map(
+                    bytes -> new RsWithBody(
+                        new RsWithStatus(RsStatus.OK),
+                        bytes
+                    )
+                ).orElseGet(() -> new RsWithStatus(RsStatus.NOT_FOUND))
+            )
         );
     }
 }

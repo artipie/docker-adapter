@@ -24,15 +24,15 @@
 
 package com.artipie.docker.asto;
 
-import com.artipie.asto.Content;
+import com.artipie.asto.Concatenation;
 import com.artipie.asto.Remaining;
 import com.artipie.docker.ExampleStorage;
 import com.artipie.docker.Repo;
 import com.artipie.docker.RepoName;
 import com.artipie.docker.Tag;
+import com.artipie.docker.manifest.Manifest;
 import com.artipie.docker.ref.ManifestRef;
-import io.reactivex.Flowable;
-import java.nio.ByteBuffer;
+import hu.akarnokd.rxjava2.interop.SingleInterop;
 import java.util.Optional;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -61,27 +61,23 @@ final class AstoRepoITCase {
 
     @Test
     void shouldReadManifest() throws Exception {
-        final Optional<Content> manifest = this.repo.manifest(
-            new ManifestRef.FromTag(new Tag.Valid("1"))
-        ).toCompletableFuture().get();
-        final byte[] content = new Remaining(
-            Flowable.fromPublisher(manifest.get())
-                .toList()
-                .blockingGet()
-                .stream()
-                .reduce(
-                    (left, right) -> ByteBuffer.allocate(left.remaining() + right.remaining())
-                        .put(left)
-                        .put(right)
-                ).orElse(ByteBuffer.allocate(0))
-        ).bytes();
+        final ManifestRef ref = new ManifestRef.FromTag(new Tag.Valid("1"));
+        final byte[] manifest = this.repo.manifest(ref)
+            .thenApply(Optional::get)
+            .thenApply(Manifest::content)
+            .thenApply(Concatenation::new)
+            .thenCompose(c -> c.single().to(SingleInterop.get()))
+            .thenApply(Remaining::new)
+            .thenApply(Remaining::bytes)
+            .toCompletableFuture()
+            .get();
         // @checkstyle MagicNumberCheck (1 line)
-        MatcherAssert.assertThat(content.length, Matchers.equalTo(528));
+        MatcherAssert.assertThat(manifest.length, Matchers.equalTo(528));
     }
 
     @Test
     void shouldReadNoManifestIfAbsent() throws Exception {
-        final Optional<Content> manifest = this.repo.manifest(
+        final Optional<Manifest> manifest = this.repo.manifest(
             new ManifestRef.FromTag(new Tag.Valid("2"))
         ).toCompletableFuture().get();
         MatcherAssert.assertThat(manifest.isPresent(), new IsEqual<>(false));

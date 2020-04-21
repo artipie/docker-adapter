@@ -44,7 +44,9 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import org.cactoos.io.BytesOf;
 import org.cactoos.text.HexOf;
 
@@ -78,11 +80,18 @@ public final class AstoBlobs implements BlobStore {
     }
 
     @Override
-    public CompletableFuture<Content> blob(final Digest digest) {
-        return this.asto.value(
-            new Key.From(
-                RegistryRoot.V2, new BlobRef(digest).string(), "data"
-            )
+    public CompletableFuture<Optional<Content>> blob(final Digest digest) {
+        final Key key = new Key.From(RegistryRoot.V2, new BlobRef(digest).string(), "data");
+        return this.asto.exists(key).thenCompose(
+            exists -> {
+                final CompletionStage<Optional<Content>> stage;
+                if (exists) {
+                    stage = this.asto.value(key).thenApply(Optional::of);
+                } else {
+                    stage = CompletableFuture.completedStage(Optional.empty());
+                }
+                return stage;
+            }
         );
     }
 

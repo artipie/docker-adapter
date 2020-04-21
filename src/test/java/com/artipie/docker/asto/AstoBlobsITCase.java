@@ -33,6 +33,7 @@ import io.reactivex.Flowable;
 import java.nio.ByteBuffer;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.hamcrest.core.IsEqual;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -68,11 +69,23 @@ final class AstoBlobsITCase {
     @Test
     void writeAndReadBlob() throws Exception {
         final BlobStore blobs = new AstoBlobs(new InMemoryStorage());
-        final ByteBuffer buf = ByteBuffer.wrap(new byte[]{0x05, 0x06, 0x07, 0x08});
+        final ByteBuffer buf = ByteBuffer.wrap(new byte[] {0x05, 0x06, 0x07, 0x08});
         final Digest digest = blobs.put(new Content.From(Flowable.fromArray(buf))).get();
         final byte[] read = Flowable.fromPublisher(
-            blobs.blob(digest).get()
+            blobs.blob(digest).get().get()
         ).toList().blockingGet().get(0).array();
         MatcherAssert.assertThat(read, Matchers.equalTo(buf.array()));
+    }
+
+    @Test
+    void readAbsentBlob() throws Exception {
+        final BlobStore blobs = new AstoBlobs(new InMemoryStorage());
+        final Digest digest = new Digest.Sha256(
+            "0123456789012345678901234567890123456789012345678901234567890123"
+        );
+        MatcherAssert.assertThat(
+            blobs.blob(digest).get().isPresent(),
+            new IsEqual<>(false)
+        );
     }
 }

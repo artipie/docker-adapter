@@ -26,8 +26,13 @@ package com.artipie.docker.manifest;
 import com.artipie.asto.Concatenation;
 import com.artipie.asto.Content;
 import com.artipie.asto.Remaining;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.concurrent.ExecutionException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.IsEqual;
+import org.hamcrest.core.IsInstanceOf;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -45,6 +50,32 @@ class JsonManifestTest {
         MatcherAssert.assertThat(
             manifest.mediaType().toCompletableFuture().get(),
             new IsEqual<>("something")
+        );
+    }
+
+    @Test
+    void shouldConvertToSameType() throws Exception {
+        final JsonManifest manifest = new JsonManifest(
+            new Content.From("{\"mediaType\":\"type2\"}".getBytes())
+        );
+        MatcherAssert.assertThat(
+            manifest.convert(Arrays.asList("type1", "type2")).toCompletableFuture().get(),
+            new IsEqual<>(manifest)
+        );
+    }
+
+    @Test
+    void shouldFailConvertToUnknownType() {
+        final JsonManifest manifest = new JsonManifest(
+            new Content.From("{\"mediaType\":\"typeA\"}".getBytes())
+        );
+        final ExecutionException exception = Assertions.assertThrows(
+            ExecutionException.class,
+            () -> manifest.convert(Collections.singleton("typeB")).toCompletableFuture().get()
+        );
+        MatcherAssert.assertThat(
+            exception.getCause(),
+            new IsInstanceOf(IllegalArgumentException.class)
         );
     }
 

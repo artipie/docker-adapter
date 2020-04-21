@@ -24,7 +24,7 @@
 
 package com.artipie.docker;
 
-import com.artipie.asto.Content;
+import com.artipie.docker.manifest.Manifest;
 import com.artipie.docker.ref.ManifestRef;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
@@ -53,5 +53,5 @@ public interface Repo {
      * @param ref Manifest reference
      * @return Flow with manifest data, or empty if absent
      */
-    CompletionStage<Optional<Content>> manifest(ManifestRef ref);
+    CompletionStage<Optional<Manifest>> manifest(ManifestRef ref);
 }

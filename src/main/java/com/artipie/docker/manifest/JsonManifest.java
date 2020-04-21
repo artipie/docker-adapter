@@ -25,6 +25,7 @@ package com.artipie.docker.manifest;
 
 import com.artipie.asto.Content;
 import com.artipie.docker.misc.Json;
+import java.util.Collection;
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -51,6 +52,20 @@ public final class JsonManifest implements Manifest {
     @Override
     public CompletionStage<String> mediaType() {
         return new Json(this.source).object().thenApply(root -> root.getString("mediaType"));
+    }
+
+    @Override
+    public CompletionStage<Manifest> convert(final Collection<String> options) {
+        return this.mediaType().thenApply(
+            type -> {
+                if (!options.contains(type)) {
+                    throw new IllegalArgumentException(
+                        String.format("Cannot convert from '%s' to any of '%s'", type, options)
+                    );
+                }
+                return this;
+            }
+        );
     }
 
     @Override

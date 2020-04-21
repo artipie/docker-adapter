@@ -25,6 +25,7 @@
 package com.artipie.docker;
 
 import com.artipie.asto.Content;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -38,7 +39,7 @@ public interface BlobStore {
      * @param digest Blob digest
      * @return Async publisher output
      */
-    CompletableFuture<Content> blob(Digest digest);
+    CompletableFuture<Optional<Content>> blob(Digest digest);
 
     /**
      * Put data into blob store and calculate its digest.
