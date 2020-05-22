@@ -23,7 +23,7 @@
  */
 package com.artipie.docker.http;
 
-import com.artipie.docker.ExampleStorage;
+import com.artipie.asto.memory.InMemoryStorage;
 import com.artipie.docker.asto.AstoDocker;
 import com.artipie.http.slice.LoggingSlice;
 import com.artipie.vertx.VertxSliceServer;
@@ -34,6 +34,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
+import org.hamcrest.Matcher;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.StringContains;
@@ -42,8 +43,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * Integration test for {@link DockerSlice}.
@@ -81,14 +80,20 @@ final class DockerSliceITCase {
      */
     private String repo;
 
+    /**
+     * Example image to use in tests.
+     */
+    private Image image;
+
     @BeforeEach
     void setUp() throws Exception {
         this.vertx = Vertx.vertx();
         this.ensureDockerInstalled();
         this.server = new VertxSliceServer(
             this.vertx,
-            new LoggingSlice(new DockerSlice(new AstoDocker(new ExampleStorage())))
+            new LoggingSlice(new DockerSlice(new AstoDocker(new InMemoryStorage())))
         );
+        this.image = this.prepareImage();
         final int port = this.server.start();
         this.repo = String.format("localhost:%s", port);
     }
@@ -103,66 +108,51 @@ final class DockerSliceITCase {
         }
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {
-        "my-alpine:latest",
-        "my-alpine@sha256:cb8a924afdf0229ef7515d9e5b3024e23b3eb03ddbba287f4a19c6ac90b8d221"
-    })
-    void shouldPull(final String name) throws Exception {
-        final String image = String.format("%s/%s", this.repo, name);
-        final String output = this.run("pull", image);
-        MatcherAssert.assertThat(
-            output,
-            new StringContains(
-                false,
-                String.format("Status: Downloaded newer image for %s", image)
-            )
-        );
-    }
-
     @Test
     void shouldPush() throws Exception {
-        final String original = "busybox";
-        this.run("pull", original);
-        final String remote = String.format("%s/my-%s", this.repo, original);
-        this.run("tag", original, remote);
-        final String output = this.run("push", remote);
+        final String output = this.run("push", this.image.remote());
         MatcherAssert.assertThat(
             output,
-            Matchers.allOf(
-                new StringContains(false, "1079c30efc82: Pushed"),
-                new StringContains(
-                    false,
-                    String.format(
-                        "latest: digest: %s:%s",
-                        "sha256",
-                        "a7766145a775d39e53a713c75b6fd6d318740e70327aaa3ed5d09e0ef33fc3df"
-                    )
-                )
-            )
+            Matchers.allOf(this.image.layersPushed(), this.image.manifestPushed())
         );
     }
 
     @Test
     void shouldPushExisting() throws Exception {
-        final String digest = String.format(
-            "%s:%s",
-            "sha256",
-            "cb8a924afdf0229ef7515d9e5b3024e23b3eb03ddbba287f4a19c6ac90b8d221"
-        );
-        final String original = String.format("alpine@%s", digest);
-        this.run("pull", original);
-        final String remote = String.format("%s/my-alpine", this.repo);
-        this.run("tag", original, remote);
-        final String output = this.run("push", remote);
+        this.run("push", this.image.remote());
+        final String output = this.run("push", this.image.remote());
         MatcherAssert.assertThat(
             output,
-            Matchers.allOf(
-                new StringContains(false, "beee9f30bc1f: Layer already exists"),
-                new StringContains(
-                    false,
-                    String.format("latest: digest: %s", digest)
-                )
+            Matchers.allOf(this.image.layersAlreadyExist(), this.image.manifestPushed())
+        );
+    }
+
+    @Test
+    void shouldPullPushedByTag() throws Exception {
+        this.run("push", this.image.remote());
+        this.run("image", "rm", this.image.local());
+        this.run("image", "rm", this.image.remote());
+        final String output = this.run("pull", this.image.remote());
+        MatcherAssert.assertThat(
+            output,
+            new StringContains(
+                false,
+                String.format("Status: Downloaded newer image for %s", this.image.remote())
+            )
+        );
+    }
+
+    @Test
+    void shouldPullPushedByDigest() throws Exception {
+        this.run("push", this.image.remote());
+        this.run("image", "rm", this.image.local());
+        this.run("image", "rm", this.image.remote());
+        final String output = this.run("pull", this.image.remoteByDigest());
+        MatcherAssert.assertThat(
+            output,
+            new StringContains(
+                false,
+                String.format("Status: Downloaded newer image for %s", this.image.remoteByDigest())
             )
         );
     }
@@ -195,6 +185,74 @@ final class DockerSliceITCase {
         final String output = this.run("--version");
         if (!output.startsWith("Docker version")) {
             throw new IllegalStateException("Docker not installed");
+        }
+    }
+
+    private Image prepareImage() throws Exception {
+        final String digest = String.format(
+            "%s:%s",
+            "sha256",
+            "a7766145a775d39e53a713c75b6fd6d318740e70327aaa3ed5d09e0ef33fc3df"
+        );
+        final String original = String.format("busybox@%s", digest);
+        this.run("pull", original);
+        final String local = "my-test";
+        this.run("tag", original, String.format("%s:latest", local));
+        final Image img = new Image(local, digest, "1079c30efc82");
+        this.run("tag", original, img.remote());
+        return img;
+    }
+
+    /**
+     * Docker image info.
+     *
+     * @since 0.2
+     */
+    private class Image {
+
+        /**
+         * Image name.
+         */
+        private final String name;
+
+        /**
+         * Manifest digest.
+         */
+        private final String digest;
+
+        /**
+         * Short layer hash.
+         */
+        private final String layer;
+
+        Image(final String name, final String digest, final String layer) {
+            this.name = name;
+            this.digest = digest;
+            this.layer = layer;
+        }
+
+        public String local() {
+            return this.name;
+        }
+
+        public String remote() {
+            return String.format("%s/%s", DockerSliceITCase.this.repo, this.local());
+        }
+
+        public String remoteByDigest() {
+            return String.format("%s@%s", this.remote(), this.digest);
+        }
+
+        public Matcher<String> manifestPushed() {
+            return new StringContains(false, String.format("latest: digest: %s", this.digest));
+        }
+
+        public Matcher<String> layersPushed() {
+            return new StringContains(false, String.format("%s: Pushed", this.layer));
+        }
+
+        public Matcher<String> layersAlreadyExist() {
+            return new StringContains(false, String.format("%s: Layer already exists", this.layer));
         }
     }
 }
