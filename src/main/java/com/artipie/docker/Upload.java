@@ -66,6 +66,13 @@ public interface Upload {
     CompletionStage<Content> content();
 
     /**
+     * Get currently uploaded content size.
+     *
+     * @return Content length.
+     */
+    CompletionStage<Long> size();
+
+    /**
      * Deletes upload blob data.
      *
      * @return Completion or error signal.

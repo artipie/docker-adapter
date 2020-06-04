@@ -52,7 +52,7 @@ final class BlobEntity {
      * RegEx pattern for path.
      */
     public static final Pattern PATH = Pattern.compile(
-        "^/v2/[^/]*/blobs/(?<digest>.*)$"
+        "^/v2/[^/]*/blobs/(?<digest>(?!(uploads/)).*)$"
     );
 
     /**

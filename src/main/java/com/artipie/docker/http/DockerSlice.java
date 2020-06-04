@@ -121,6 +121,13 @@ public final class DockerSlice extends Slice.Wrap {
                             new RtRule.ByMethod(RqMethod.PUT)
                         ),
                         new UploadEntity.Put(docker)
+                    ),
+                    new SliceRoute.Path(
+                        new RtRule.Multiple(
+                            new RtRule.ByPath(UploadEntity.PATH),
+                            new RtRule.ByMethod(RqMethod.GET)
+                        ),
+                        new UploadEntity.Get(docker)
                     )
                 ),
                 Pattern.compile(String.format("^(?:%s)(\\/.*)?", base))

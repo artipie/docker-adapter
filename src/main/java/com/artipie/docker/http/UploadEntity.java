@@ -29,6 +29,7 @@ import com.artipie.docker.Docker;
 import com.artipie.docker.RepoName;
 import com.artipie.docker.misc.DigestFromContent;
 import com.artipie.http.Connection;
+import com.artipie.http.Headers;
 import com.artipie.http.Response;
 import com.artipie.http.Slice;
 import com.artipie.http.async.AsyncResponse;
@@ -45,6 +46,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.cactoos.iterable.IterableOf;
+import org.cactoos.iterable.Joined;
 import org.reactivestreams.Publisher;
 
 /**
@@ -101,7 +104,9 @@ public final class UploadEntity {
             final RepoName name = new Request(line).name();
             return new AsyncResponse(
                 this.docker.repo(name).startUpload().thenApply(
-                    upload -> new StatusResponse(name, upload.uuid(), 0)
+                    upload -> new StatusResponse(
+                        RsStatus.ACCEPTED, name, upload.uuid(), 0, true
+                    )
                 )
             );
         }
@@ -141,7 +146,9 @@ public final class UploadEntity {
                 this.docker.repo(name).upload(uuid).thenCompose(
                     found -> found.<CompletionStage<Response>>map(
                         upload -> upload.append(body).thenApply(
-                            offset -> new StatusResponse(name, uuid, offset)
+                            offset -> new StatusResponse(
+                                RsStatus.NO_CONTENT, name, uuid, offset, true
+                            )
                         )
                     ).orElseGet(
                         () -> CompletableFuture.completedStage(new RsWithStatus(RsStatus.NOT_FOUND))
@@ -242,6 +249,52 @@ public final class UploadEntity {
     }
 
     /**
+     * Slice for GET method.
+     *
+     * @since 0.3
+     */
+    public static final class Get implements Slice {
+
+        /**
+         * Docker repository.
+         */
+        private final Docker docker;
+
+        /**
+         * Ctor.
+         *
+         * @param docker Docker repository.
+         */
+        Get(final Docker docker) {
+            this.docker = docker;
+        }
+
+        @Override
+        public Response response(
+            final String line,
+            final Iterable<Map.Entry<String, String>> headers,
+            final Publisher<ByteBuffer> body
+        ) {
+            final Request request = new Request(line);
+            final RepoName name = request.name();
+            final String uuid = request.uuid();
+            return new AsyncResponse(
+                this.docker.repo(name).upload(uuid).thenCompose(
+                    found -> found.<CompletionStage<Response>>map(
+                        upload -> upload.size().thenApply(
+                            size -> new StatusResponse(
+                                RsStatus.NO_CONTENT, name, uuid, Math.max(size - 1, 0)
+                            )
+                        )
+                    ).orElseGet(
+                        () -> CompletableFuture.completedStage(new RsWithStatus(RsStatus.NOT_FOUND))
+                    )
+                )
+            );
+        }
+    }
+
+    /**
      * HTTP request to upload blob entity.
      *
      * @since 0.2
@@ -321,8 +374,13 @@ public final class UploadEntity {
      * Upload blob status HTTP response.
      *
      * @since 0.2
+     * @checkstyle ParameterNumberCheck (100 lines)
      */
     private static class StatusResponse implements Response {
+        /**
+         * HTTP Status code.
+         */
+        private final RsStatus status;
 
         /**
          * Repository name.
@@ -340,29 +398,72 @@ public final class UploadEntity {
         private final long offset;
 
         /**
+         * Location header required flag.
+         */
+        private final boolean location;
+
+        /**
          * Ctor.
          *
+         * @param status HTTP Status code.
          * @param name Repository name.
          * @param uuid Upload UUID.
          * @param offset Current upload offset.
          */
-        StatusResponse(final RepoName name, final String uuid, final long offset) {
+        StatusResponse(
+            final RsStatus status,
+            final RepoName name,
+            final String uuid,
+            final long offset) {
+            this(status, name, uuid, offset, false);
+        }
+
+        /**
+         * Ctor.
+         *
+         * @param status HTTP Status code.
+         * @param name Repository name.
+         * @param uuid Upload UUID.
+         * @param offset Current upload offset.
+         * @param location Need to send location header.
+         */
+        StatusResponse(
+            final RsStatus status,
+            final RepoName name,
+            final String uuid,
+            final long offset,
+            final boolean location) {
+            this.status = status;
             this.name = name;
             this.uuid = uuid;
             this.offset = offset;
+            this.location = location;
         }
 
         @Override
         public CompletionStage<Void> send(final Connection connection) {
-            return new RsWithHeaders(
-                new RsWithStatus(RsStatus.ACCEPTED),
-                new Header(
-                    "Location",
-                    String.format("/v2/%s/blobs/uploads/%s", this.name.value(), this.uuid)
-                ),
+            final Iterable<Map.Entry<String, String>> base = new IterableOf<>(
                 new Header("Range", String.format("0-%d", this.offset)),
                 new Header("Content-Length", "0"),
                 new Header("Docker-Upload-UUID", this.uuid)
+            );
+            final Iterable<Map.Entry<String, String>> headers;
+            if (this.location) {
+                headers = new Joined<Map.Entry<String, String>>(
+                    base,
+                    new IterableOf<>(
+                        new Header(
+                            "Location",
+                            String.format("/v2/%s/blobs/uploads/%s", this.name.value(), this.uuid)
+                        )
+                    )
+                );
+            } else {
+                headers = base;
+            }
+            return new RsWithHeaders(
+                new RsWithStatus(this.status),
+                new Headers.From(headers)
             ).send(connection);
         }
     }

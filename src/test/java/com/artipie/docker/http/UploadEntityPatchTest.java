@@ -87,7 +87,7 @@ class UploadEntityPatchTest {
             response,
             new AllOf<>(
                 Arrays.asList(
-                    new RsHasStatus(RsStatus.ACCEPTED),
+                    new RsHasStatus(RsStatus.NO_CONTENT),
                     new RsHasHeaders(
                         new Header("Location", path),
                         new Header("Range", String.format("0-%d", data.length - 1)),
