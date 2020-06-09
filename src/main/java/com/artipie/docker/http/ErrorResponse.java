@@ -1,9 +1,35 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2020 Artipie
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.artipie.docker.http;
 
 import com.artipie.http.Connection;
 import com.artipie.http.Headers;
 import com.artipie.http.Response;
-import com.artipie.http.rs.*;
+import com.artipie.http.rs.RsStatus;
+import com.artipie.http.rs.RsWithBody;
+import com.artipie.http.rs.RsWithHeaders;
+import com.artipie.http.rs.RsWithStatus;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletionStage;
 
@@ -12,7 +38,7 @@ import java.util.concurrent.CompletionStage;
  *
  * @since 0.2
  */
-public class ErrorResponse implements Response {
+final class ErrorResponse implements Response {
     /**
      * Origin response.
      */
@@ -20,18 +46,10 @@ public class ErrorResponse implements Response {
 
     /**
      * Ctor.
-     * @param origin Origin response
-     */
-    ErrorResponse(final Response origin) {
-        this.origin = origin;
-    }
-
-    /**
-     * Ctor.
      * @param status Http status
      * @param buff Origin response
      */
-    ErrorResponse(RsStatus status, final ByteBuffer buff) {
+    ErrorResponse(final RsStatus status, final ByteBuffer buff) {
         this.origin = new RsWithBody(
             new RsWithHeaders(
                 new RsWithStatus(status),
@@ -43,14 +61,24 @@ public class ErrorResponse implements Response {
 
     /**
      * Ctor.
+     * @param status HTTP status of response
      * @param code Code of response
      * @param message Message of response
      * @param detail More detail about of  response
+     * @checkstyle LineLengthCheck (10 lines)
+     * @checkstyle ParameterNumberCheck (4 lines)
      */
-    ErrorResponse(RsStatus status, String code, String message, String detail) {
+    ErrorResponse(final RsStatus status, final String code, final String message, final String detail) {
         this(
             status,
-            ByteBuffer.wrap("{ \"errors:\" [{\r\n            \"code\": ,\r\n            \"message\": %s,\\r\\n            \"detail\": %s\r\n        }\r\n    ]\r\n}".getBytes())
+            ByteBuffer.wrap(
+                String.format(
+                    "{ \"errors:\" [{\r\n            \"code\":%s ,\r\n            \"message\": %s,\\r\\n            \"detail\": %s\r\n        }\r\n    ]\r\n}",
+                    code,
+                    message,
+                    detail
+                ).getBytes()
+            )
         );
     }
 
