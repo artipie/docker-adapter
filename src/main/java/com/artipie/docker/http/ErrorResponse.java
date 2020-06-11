@@ -31,18 +31,14 @@ import com.artipie.http.rs.RsWithBody;
 import com.artipie.http.rs.RsWithHeaders;
 import com.artipie.http.rs.RsWithStatus;
 import java.nio.ByteBuffer;
-import java.util.concurrent.CompletionStage;
+import javax.json.Json;
 
 /**
  * Docker response in case of errors.
  *
  * @since 0.2
  */
-final class ErrorResponse implements Response {
-    /**
-     * Origin response.
-     */
-    private final Response origin;
+final class ErrorResponse extends Response.Wrap {
 
     /**
      * Ctor.
@@ -50,12 +46,15 @@ final class ErrorResponse implements Response {
      * @param buff Origin response
      */
     ErrorResponse(final RsStatus status, final ByteBuffer buff) {
-        this.origin = new RsWithBody(
-            new RsWithHeaders(
-                new RsWithStatus(status),
-                new Headers.From("Content-Type", "application/json")
-            ),
-            buff
+        super(
+             new RsWithBody(
+                new RsWithHeaders(
+                    new RsWithStatus(status),
+                    new ContentLength(String.valueOf(buff.)),
+                    new Headers.From("Content-Type", "application/json")
+                ),
+                buff
+            )
         );
     }
 
@@ -71,20 +70,15 @@ final class ErrorResponse implements Response {
     ErrorResponse(final RsStatus status, final String code, final String message, final String detail) {
         this(
             status,
-            ByteBuffer.wrap(
-                String.format(
-                    "{ \"errors:\" [{\r\n            \"code\":%s ,\r\n            \"message\": %s,\\r\\n            \"detail\": %s\r\n        }\r\n    ]\r\n}",
-                    code,
-                    message,
-                    detail
-                ).getBytes()
+            ByteBuffer.wrap( Json.createObjectBuilder()
+                .add("errors",
+                    Json.createObjectBuilder().add("code", code)
+                        .add("message", message)
+                        .add("detail", detail)
+                )
+                .build().toString().getBytes()
             )
         );
-    }
-
-    @Override
-    public CompletionStage<Void> send(final Connection connection) {
-        return this.origin.send(connection);
     }
 }
 
