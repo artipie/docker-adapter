@@ -25,11 +25,13 @@ package com.artipie.docker.http;
 
 import com.artipie.http.Headers;
 import com.artipie.http.Response;
+import com.artipie.http.rs.Header;
 import com.artipie.http.rs.RsStatus;
 import com.artipie.http.rs.RsWithBody;
 import com.artipie.http.rs.RsWithHeaders;
 import com.artipie.http.rs.RsWithStatus;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import javax.json.Json;
 
 /**
@@ -37,10 +39,11 @@ import javax.json.Json;
  *
  * @since 0.2
  */
-abstract class ErrorResponse extends  Response.Wrap {
+abstract class ErrorResponse extends Response.Wrap {
 
     /**
      * Ctor.
+     *
      * @param status Http status
      * @param buff Origin response
      */
@@ -50,7 +53,8 @@ abstract class ErrorResponse extends  Response.Wrap {
                 new RsWithHeaders(
                     new RsWithStatus(status),
                     new Headers.From(
-                    "Content-Type", "application/json; charset=utf-8"
+                        new Header("Content-Length", String.valueOf(buff.position())),
+                        new Header("Content-Type", "application/json; charset=utf-8")
                     )
                 ),
                 buff
@@ -60,6 +64,7 @@ abstract class ErrorResponse extends  Response.Wrap {
 
     /**
      * Ctor.
+     *
      * @param status HTTP status of response
      * @param code Code of response
      * @param message Message of response
@@ -72,46 +77,14 @@ abstract class ErrorResponse extends  Response.Wrap {
             status,
             ByteBuffer.wrap(
                 Json.createObjectBuilder()
-                .add(
-                "errors",
-                    Json.createObjectBuilder().add("code", code)
-                        .add("message", message)
-                        .add("detail", detail)
-                )
-                .build().toString().getBytes()
+                    .add(
+                        "errors",
+                        Json.createObjectBuilder().add("code", code)
+                            .add("message", message)
+                            .add("detail", detail)
+                    )
+                    .build().toString().getBytes(StandardCharsets.UTF_8)
             )
         );
-    }
-
-    /**
-     * Internal error with json body.
-     * @since 0.2
-     */
-    final class BlobUnknownError extends ErrorResponse {
-
-        /**
-         * Ctor.
-         *
-         * @param detail Detail of the response.
-         */
-        BlobUnknownError(final String detail) {
-            super(RsStatus.BAD_REQUEST, "BLOB_UNKNOWN", "blob unknown to registry", detail);
-        }
-    }
-
-    /**
-     * Internal error with json body.
-     * @since 0.2
-     */
-    final class ManifestInvalidError extends ErrorResponse {
-
-        /**
-         * Ctor.
-         *
-         * @param detail Detail of the response.
-         */
-        ManifestInvalidError(final String detail) {
-            super(RsStatus.BAD_REQUEST, "MANIFEST_INVALID", "manifest invalid", detail);
-        }
     }
 }
