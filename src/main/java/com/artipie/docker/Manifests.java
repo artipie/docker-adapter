@@ -21,36 +21,36 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
 package com.artipie.docker;
 
 import com.artipie.asto.Content;
+import com.artipie.docker.manifest.Manifest;
+import com.artipie.docker.ref.ManifestRef;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 /**
- * Blob stored in repository.
+ * Docker repository manifests.
  *
- * @since 0.2
+ * @since 0.3
  */
-public interface Blob {
+public interface Manifests {
 
     /**
-     * Blob digest.
+     * Put manifest.
      *
-     * @return Digest.
+     * @param ref Manifest reference.
+     * @param content Manifest content.
+     * @return Added manifest.
      */
-    Digest digest();
+    CompletionStage<Manifest> put(ManifestRef ref, Content content);
 
     /**
-     * Read blob size.
+     * Get manifest by reference.
      *
-     * @return Size of blob in bytes.
+     * @param ref Manifest reference
+     * @return Manifest instance if it is found, empty if manifest is absent.
      */
-    CompletionStage<Long> size();
-
-    /**
-     * Read blob content.
-     *
-     * @return Content.
-     */
-    CompletionStage<Content> content();
+    CompletionStage<Optional<Manifest>> get(ManifestRef ref);
 }

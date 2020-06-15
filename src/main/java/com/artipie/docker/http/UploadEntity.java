@@ -25,6 +25,7 @@ package com.artipie.docker.http;
 
 import com.artipie.docker.Digest;
 import com.artipie.docker.Docker;
+import com.artipie.docker.Repo;
 import com.artipie.docker.RepoName;
 import com.artipie.docker.misc.DigestFromContent;
 import com.artipie.http.Connection;
@@ -60,7 +61,7 @@ public final class UploadEntity {
      * RegEx pattern for path.
      */
     public static final Pattern PATH = Pattern.compile(
-        "^/v2/(?<name>[^/]*)/blobs/uploads/(?<uuid>.*)$"
+        "^/v2/(?<name>.*)/blobs/uploads/(?<uuid>.*)$"
     );
 
     /**
@@ -98,7 +99,7 @@ public final class UploadEntity {
         ) {
             final RepoName name = new Request(line).name();
             return new AsyncResponse(
-                this.docker.repo(name).startUpload().thenApply(
+                this.docker.repo(name).uploads().start().thenApply(
                     upload -> new StatusResponse(name, upload.uuid(), 0)
                 )
             );
@@ -136,7 +137,7 @@ public final class UploadEntity {
             final RepoName name = request.name();
             final String uuid = request.uuid();
             return new AsyncResponse(
-                this.docker.repo(name).upload(uuid).thenCompose(
+                this.docker.repo(name).uploads().get(uuid).thenCompose(
                     found -> found.<CompletionStage<Response>>map(
                         upload -> upload.append(body).thenApply(
                             offset -> new StatusResponse(name, uuid, offset)
@@ -186,20 +187,24 @@ public final class UploadEntity {
             final Request request = new Request(line);
             final RepoName name = request.name();
             final String uuid = request.uuid();
+            final Repo repo = this.docker.repo(name);
             return new AsyncResponse(
-                this.docker.repo(name).upload(uuid).<Response>thenCompose(
+                repo.uploads().get(uuid).<Response>thenCompose(
                     found -> found.map(
-                        upload -> upload.content().thenCompose(
-                            content -> new DigestFromContent(content).digest().thenCompose(
+                        upload -> upload.content()
+                            .thenCompose(content -> new DigestFromContent(content).digest())
+                            .thenCompose(
                                 digest -> {
                                     final CompletionStage<Response> res;
                                     if (digest.string().equals(request.digest().string())) {
-                                        res = this.docker.blobStore().put(content, digest)
-                                            .thenCompose(
-                                                blob -> upload.delete().thenApply(
-                                                    ignored -> Put.getResponse(name,  digest)
+                                        res = upload.content().thenCompose(
+                                            content -> repo.layers().put(content, digest)
+                                                .thenCompose(
+                                                    blob -> upload.delete().thenApply(
+                                                        ignored -> Put.getResponse(name, digest)
+                                                    )
                                                 )
-                                            );
+                                        );
                                     } else {
                                         res = CompletableFuture.completedStage(
                                             new RsWithStatus(RsStatus.BAD_REQUEST)
@@ -208,7 +213,6 @@ public final class UploadEntity {
                                     return res;
                                 }
                             )
-                        )
                     ).orElseGet(
                         () -> CompletableFuture.completedStage(new RsWithStatus(RsStatus.NOT_FOUND))
                     )
@@ -237,6 +241,55 @@ public final class UploadEntity {
                 ),
                 new Header("Content-Length", "0"),
                 new DigestHeader(digest)
+            );
+        }
+    }
+
+    /**
+     * Slice for GET method.
+     *
+     * @since 0.3
+     */
+    public static final class Get implements Slice {
+
+        /**
+         * Docker repository.
+         */
+        private final Docker docker;
+
+        /**
+         * Ctor.
+         *
+         * @param docker Docker repository.
+         */
+        Get(final Docker docker) {
+            this.docker = docker;
+        }
+
+        @Override
+        public Response response(
+            final String line,
+            final Iterable<Map.Entry<String, String>> headers,
+            final Publisher<ByteBuffer> body
+        ) {
+            final Request request = new Request(line);
+            final RepoName name = request.name();
+            final String uuid = request.uuid();
+            return new AsyncResponse(
+                this.docker.repo(name).uploads().get(uuid).thenCompose(
+                    found -> found.<CompletionStage<Response>>map(
+                        upload -> upload.offset().thenApply(
+                            offset -> new RsWithHeaders(
+                                new RsWithStatus(RsStatus.NO_CONTENT),
+                                new Header("Content-Length", "0"),
+                                new Header("Range", String.format("0-%d", offset)),
+                                new Header("Docker-Upload-UUID", uuid)
+                            )
+                        )
+                    ).orElseGet(
+                        () -> CompletableFuture.completedStage(new RsWithStatus(RsStatus.NOT_FOUND))
+                    )
+                )
             );
         }
     }

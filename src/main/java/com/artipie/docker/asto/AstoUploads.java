@@ -21,19 +21,25 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 package com.artipie.docker.asto;
 
 import com.artipie.asto.Storage;
-import com.artipie.docker.Docker;
-import com.artipie.docker.Repo;
 import com.artipie.docker.RepoName;
+import com.artipie.docker.Upload;
+import com.artipie.docker.Uploads;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.CompletionStage;
 
 /**
- * Asto {@link Docker} implementation.
- * @since 0.1
+ * Asto implementation of {@link Uploads}.
+ *
+ * @since 0.3
+ * @todo #169:30min Add unit tests for `AstoUpload` class
+ *  `AstoUpload` lacks test coverage. It would be nice to test both `start` and `get` methods
+ *  of this class.
  */
-public final class AstoDocker implements Docker {
+public final class AstoUploads implements Uploads {
 
     /**
      * Asto storage.
@@ -41,15 +47,40 @@ public final class AstoDocker implements Docker {
     private final Storage asto;
 
     /**
-     * Ctor.
-     * @param asto Asto storage
+     * Repository name.
      */
-    public AstoDocker(final Storage asto) {
+    private final RepoName name;
+
+    /**
+     * Ctor.
+     *
+     * @param asto Asto storage
+     * @param name Repository name
+     */
+    public AstoUploads(final Storage asto, final RepoName name) {
         this.asto = asto;
+        this.name = name;
     }
 
     @Override
-    public Repo repo(final RepoName name) {
-        return new AstoRepo(this.asto, new AstoBlobs(this.asto), name);
+    public CompletionStage<Upload> start() {
+        final String uuid = UUID.randomUUID().toString();
+        final AstoUpload upload = new AstoUpload(this.asto, this.name, uuid);
+        return upload.start().thenApply(ignored -> upload);
+    }
+
+    @Override
+    public CompletionStage<Optional<Upload>> get(final String uuid) {
+        return this.asto.list(new UploadKey(this.name, uuid)).thenApply(
+            list -> {
+                final Optional<Upload> upload;
+                if (list.isEmpty()) {
+                    upload = Optional.empty();
+                } else {
+                    upload = Optional.of(new AstoUpload(this.asto, this.name, uuid));
+                }
+                return upload;
+            }
+        );
     }
 }

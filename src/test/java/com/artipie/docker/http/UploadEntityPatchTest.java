@@ -72,8 +72,8 @@ class UploadEntityPatchTest {
     @Test
     void shouldReturnUpdatedUploadStatus() {
         final String name = "test";
-        final Upload upload = this.docker.repo(new RepoName.Valid(name))
-            .startUpload()
+        final Upload upload = this.docker.repo(new RepoName.Valid(name)).uploads()
+            .start()
             .toCompletableFuture().join();
         final String uuid = upload.uuid();
         final String path = String.format("/v2/%s/blobs/uploads/%s", name, uuid);

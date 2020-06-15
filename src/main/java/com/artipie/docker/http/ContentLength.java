@@ -23,6 +23,8 @@
  */
 package com.artipie.docker.http;
 
+import com.artipie.http.Headers;
+import com.artipie.http.rq.RqHeaders;
 import com.artipie.http.rs.Header;
 
 /**
@@ -30,7 +32,12 @@ import com.artipie.http.rs.Header;
  *
  * @since 0.2
  */
-public class ContentLength extends Header.Wrap {
+public final class ContentLength extends Header.Wrap {
+
+    /**
+     * Header name.
+     */
+    private static final String NAME = "Content-Length";
 
     /**
      * Ctor.
@@ -38,6 +45,24 @@ public class ContentLength extends Header.Wrap {
      * @param value Header value.
      */
     public ContentLength(final String value) {
-        super(new Header("Content-Length", value));
+        super(new Header(ContentLength.NAME, value));
+    }
+
+    /**
+     * Ctor.
+     *
+     * @param headers Headers to extract header from.
+     */
+    public ContentLength(final Headers headers) {
+        this(new RqHeaders.Single(headers, ContentLength.NAME).asString());
+    }
+
+    /**
+     * Read header as numeric value.
+     *
+     * @return Header value.
+     */
+    public long value() {
+        return Long.parseLong(this.getValue());
     }
 }

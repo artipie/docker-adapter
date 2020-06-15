@@ -64,7 +64,7 @@ class ManifestEntityGetTest {
     }
 
     @Test
-    void shouldReturnManifestByTag() {
+    void shouldReturnManifestByTag() throws Exception {
         MatcherAssert.assertThat(
             this.slice.response(
                 new RequestLine("GET", "/base/v2/my-alpine/manifests/1", "HTTP/1.1").toString(),
@@ -84,7 +84,7 @@ class ManifestEntityGetTest {
     }
 
     @Test
-    void shouldReturnManifestByDigest() {
+    void shouldReturnManifestByDigest() throws Exception {
         final String hex = "cb8a924afdf0229ef7515d9e5b3024e23b3eb03ddbba287f4a19c6ac90b8d221";
         final String digest = String.format("%s:%s", "sha256", hex);
         MatcherAssert.assertThat(
@@ -140,7 +140,7 @@ class ManifestEntityGetTest {
     private static Matcher<Response> success(
         final String digest,
         final Key content
-    ) {
+    ) throws Exception {
         return new AllOf<>(
             Arrays.asList(
                 new RsHasStatus(RsStatus.OK),

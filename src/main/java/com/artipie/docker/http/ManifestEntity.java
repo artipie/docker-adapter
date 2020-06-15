@@ -97,7 +97,7 @@ final class ManifestEntity {
             final Publisher<ByteBuffer> body) {
             final Request request = new Request(line);
             return new AsyncResponse(
-                this.docker.repo(request.name()).manifest(request.reference()).thenCompose(
+                this.docker.repo(request.name()).manifests().get(request.reference()).thenCompose(
                     manifest -> manifest.<CompletionStage<Response>>map(
                         found -> found.convert(Head.acceptHeader(headers))
                             .thenCompose(
@@ -153,7 +153,7 @@ final class ManifestEntity {
             final RepoName name = request.name();
             final ManifestRef ref = request.reference();
             return new AsyncResponse(
-                this.docker.repo(name).manifest(ref).thenCompose(
+                this.docker.repo(name).manifests().get(ref).thenCompose(
                     manifest -> manifest.<CompletionStage<Response>>map(
                         found -> found.convert(Head.acceptHeader(headers))
                             .thenCompose(
@@ -201,7 +201,7 @@ final class ManifestEntity {
             final RepoName name = request.name();
             final ManifestRef ref = request.reference();
             return new AsyncResponse(
-                this.docker.repo(name).addManifest(ref, new Content.From(body)).thenApply(
+                this.docker.repo(name).manifests().put(ref, new Content.From(body)).thenApply(
                     manifest -> new RsWithHeaders(
                         new RsWithStatus(RsStatus.CREATED),
                         new Header(

@@ -26,6 +26,8 @@ package com.artipie.docker.http;
 import com.artipie.http.rq.RequestLine;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.IsEqual;
+import org.hamcrest.core.StringContains;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -46,11 +48,31 @@ class UploadEntityRequestTest {
     }
 
     @Test
+    void shouldReadCompositeName() {
+        final String name = "zero-one/two.three/four_five";
+        MatcherAssert.assertThat(
+            new UploadEntity.Request(
+                new RequestLine(
+                    "POST", String.format("/v2/%s/blobs/uploads/", name), "HTTP/1.1"
+                ).toString()
+            ).name().value(),
+            new IsEqual<>(name)
+        );
+    }
+
+    @Test
     void shouldReadUuid() {
         final UploadEntity.Request request = new UploadEntity.Request(
-            new RequestLine("PATCH", "/v2/my-repo/blobs/uploads/123-abc", "HTTP/1.1").toString()
+            new RequestLine(
+                "PATCH",
+                "/v2/my-repo/blobs/uploads/a9e48d2a-c939-441d-bb53-b3ad9ab67709",
+                "HTTP/1.1"
+            ).toString()
         );
-        MatcherAssert.assertThat(request.uuid(), new IsEqual<>("123-abc"));
+        MatcherAssert.assertThat(
+            request.uuid(),
+            new IsEqual<>("a9e48d2a-c939-441d-bb53-b3ad9ab67709")
+        );
     }
 
     @Test
@@ -63,5 +85,39 @@ class UploadEntityRequestTest {
             ).toString()
         );
         MatcherAssert.assertThat(request.digest().string(), new IsEqual<>("sha256:12345"));
+    }
+
+    @Test
+    void shouldThrowExceptionOnInvalidPath() {
+        MatcherAssert.assertThat(
+            Assertions.assertThrows(
+                IllegalStateException.class,
+                () -> new UploadEntity.Request(
+                    new RequestLine(
+                        "PUT",
+                        "/one/two",
+                        "HTTP/1.1"
+                    ).toString()
+                ).name()
+            ).getMessage(),
+            new StringContains(false, "Unexpected path")
+        );
+    }
+
+    @Test
+    void shouldThrowExceptionOnInvalidQuery() {
+        MatcherAssert.assertThat(
+            Assertions.assertThrows(
+                IllegalStateException.class,
+                () -> new UploadEntity.Request(
+                    new RequestLine(
+                        "PUT",
+                        "/v2/my-repo/blobs/uploads/123-abc?what=nothing",
+                        "HTTP/1.1"
+                    ).toString()
+                ).digest()
+            ).getMessage(),
+            new StringContains(false, "Unexpected query")
+        );
     }
 }

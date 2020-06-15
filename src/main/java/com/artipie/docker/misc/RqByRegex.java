@@ -21,36 +21,49 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.artipie.docker;
+package com.artipie.docker.misc;
 
-import com.artipie.asto.Content;
-import java.util.concurrent.CompletionStage;
+import com.artipie.http.rq.RequestLineFrom;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
- * Blob stored in repository.
- *
- * @since 0.2
+ * Request by RegEx pattern.
+ * @since 0.3
  */
-public interface Blob {
+public final class RqByRegex {
 
     /**
-     * Blob digest.
-     *
-     * @return Digest.
+     * Request line.
      */
-    Digest digest();
+    private final String line;
 
     /**
-     * Read blob size.
-     *
-     * @return Size of blob in bytes.
+     * Pattern.
      */
-    CompletionStage<Long> size();
+    private final Pattern regex;
 
     /**
-     * Read blob content.
-     *
-     * @return Content.
+     * Ctor.
+     * @param line Request line
+     * @param regex Regex
      */
-    CompletionStage<Content> content();
+    public RqByRegex(final String line, final Pattern regex) {
+        this.line = line;
+        this.regex = regex;
+    }
+
+    /**
+     * Matches request path by RegEx pattern.
+     *
+     * @return Path matcher.
+     */
+    public Matcher path() {
+        final String path = new RequestLineFrom(this.line).uri().getPath();
+        final Matcher matcher = this.regex.matcher(path);
+        if (!matcher.matches()) {
+            throw new IllegalArgumentException(String.format("Unexpected path: %s", path));
+        }
+        return matcher;
+    }
 }

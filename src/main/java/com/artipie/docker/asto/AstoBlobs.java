@@ -28,14 +28,11 @@ import com.artipie.asto.Content;
 import com.artipie.asto.Storage;
 import com.artipie.asto.fs.RxFile;
 import com.artipie.docker.Blob;
-import com.artipie.docker.BlobStore;
 import com.artipie.docker.Digest;
 import hu.akarnokd.rxjava2.interop.SingleInterop;
 import io.reactivex.Completable;
 import io.reactivex.Flowable;
 import io.reactivex.Single;
-import io.vertx.reactivex.core.Vertx;
-import io.vertx.reactivex.core.file.FileSystem;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
@@ -54,12 +51,7 @@ import java.util.concurrent.CompletionStage;
  * @checkstyle ReturnCountCheck (500 lines)
  */
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
-public final class AstoBlobs implements BlobStore {
-
-    /**
-     * Vert.x file system used for temporary files.
-     */
-    private static final FileSystem FILE_SYSTEM = Vertx.vertx().fileSystem();
+final class AstoBlobs implements BlobStore {
 
     /**
      * Storage.
@@ -70,7 +62,7 @@ public final class AstoBlobs implements BlobStore {
      * Ctor.
      * @param asto Storage
      */
-    public AstoBlobs(final Storage asto) {
+    AstoBlobs(final Storage asto) {
         this.asto = asto;
     }
 
@@ -112,12 +104,17 @@ public final class AstoBlobs implements BlobStore {
             .doOnTerminate(out::close)
             .andThen(Single.just(out))
             .flatMap(
-                ignored -> SingleInterop.fromFuture(
-                    this.asto.save(
-                        new BlobKey(digest),
-                        new Content.From(new RxFile(tmp, AstoBlobs.FILE_SYSTEM).flow())
-                    ).<Blob>thenApply(empty -> new AstoBlob(this.asto, digest))
-                )
+                ignored -> {
+                    final RxFile file = new RxFile(tmp);
+                    return file.size().flatMap(
+                        size -> SingleInterop.fromFuture(
+                            this.asto.save(
+                                new BlobKey(digest),
+                                new Content.From(size, file.flow())
+                            ).<Blob>thenApply(empty -> new AstoBlob(this.asto, digest))
+                        )
+                    );
+                }
             )
             .doAfterTerminate(() -> Files.delete(tmp))
             .to(SingleInterop.get()).toCompletableFuture();

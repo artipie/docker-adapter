@@ -21,36 +21,35 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.artipie.docker;
+package com.artipie.docker.misc;
 
-import com.artipie.asto.Content;
-import java.util.concurrent.CompletionStage;
+import java.util.regex.Pattern;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.core.IsEqual;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 /**
- * Blob stored in repository.
- *
- * @since 0.2
+ * Test for {@link RqByRegex}.
+ * @since 0.3
  */
-public interface Blob {
+class RqByRegexTest {
 
-    /**
-     * Blob digest.
-     *
-     * @return Digest.
-     */
-    Digest digest();
+    @Test
+    void shouldMatchPath() {
+        MatcherAssert.assertThat(
+            new RqByRegex("GET /v2/some/repo HTTP/1.1", Pattern.compile("/v2/.*")).path().matches(),
+            new IsEqual<>(true)
+        );
+    }
 
-    /**
-     * Read blob size.
-     *
-     * @return Size of blob in bytes.
-     */
-    CompletionStage<Long> size();
+    @Test
+    void shouldThrowExceptionIsDoesNotMatch() {
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () -> new RqByRegex("GET /v3/my-repo/blobs HTTP/1.1", Pattern.compile("/v2/.*/blobs"))
+                .path()
+        );
+    }
 
-    /**
-     * Read blob content.
-     *
-     * @return Content.
-     */
-    CompletionStage<Content> content();
 }

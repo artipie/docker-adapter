@@ -21,36 +21,40 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.artipie.docker;
+package com.artipie.docker.http;
 
-import com.artipie.asto.Content;
-import java.util.concurrent.CompletionStage;
+import com.artipie.http.Headers;
+import com.artipie.http.rs.Header;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.core.IsEqual;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 /**
- * Blob stored in repository.
+ * Test case for {@link ContentLength}.
  *
- * @since 0.2
+ * @since 0.3
  */
-public interface Blob {
+public final class ContentLengthTest {
 
-    /**
-     * Blob digest.
-     *
-     * @return Digest.
-     */
-    Digest digest();
+    @Test
+    void shouldExtractValueFromHeaders() {
+        final long length = 123;
+        final ContentLength header = new ContentLength(
+            new Headers.From(
+                new Header("Content-Type", "application/octet-stream"),
+                new Header("Content-Length", String.valueOf(length)),
+                new Header("X-Something", "Some Value")
+            )
+        );
+        MatcherAssert.assertThat(header.value(), new IsEqual<>(length));
+    }
 
-    /**
-     * Read blob size.
-     *
-     * @return Size of blob in bytes.
-     */
-    CompletionStage<Long> size();
-
-    /**
-     * Read blob content.
-     *
-     * @return Content.
-     */
-    CompletionStage<Content> content();
+    @Test
+    void shouldFailToExtractValueFromEmptyHeaders() {
+        Assertions.assertThrows(
+            IllegalStateException.class,
+            () -> new ContentLength(Headers.EMPTY).value()
+        );
+    }
 }

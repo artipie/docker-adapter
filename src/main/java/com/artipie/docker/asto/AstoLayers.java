@@ -26,7 +26,6 @@ package com.artipie.docker.asto;
 
 import com.artipie.asto.Content;
 import com.artipie.docker.Blob;
-import com.artipie.docker.BlobStore;
 import com.artipie.docker.Digest;
 import com.artipie.docker.Layers;
 import java.util.Optional;

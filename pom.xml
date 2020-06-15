@@ -62,7 +62,7 @@ SOFTWARE.
     <dependency>
       <groupId>com.artipie</groupId>
       <artifactId>asto</artifactId>
-      <version>0.18</version>
+      <version>0.22</version>
     </dependency>
     <dependency>
       <groupId>org.cactoos</groupId>
@@ -118,6 +118,18 @@ SOFTWARE.
       <groupId>com.artipie</groupId>
       <artifactId>vertx-server</artifactId>
       <version>0.3.1</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.adobe.testing</groupId>
+      <artifactId>s3mock</artifactId>
+      <version>2.1.19</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.adobe.testing</groupId>
+      <artifactId>s3mock-junit5</artifactId>
+      <version>2.1.19</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

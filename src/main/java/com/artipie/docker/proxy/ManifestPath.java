@@ -21,36 +21,45 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.artipie.docker;
+package com.artipie.docker.proxy;
 
-import com.artipie.asto.Content;
-import java.util.concurrent.CompletionStage;
+import com.artipie.docker.RepoName;
+import com.artipie.docker.ref.ManifestRef;
 
 /**
- * Blob stored in repository.
+ * Path to manifest resource.
  *
- * @since 0.2
+ * @since 0.3
  */
-public interface Blob {
+final class ManifestPath {
 
     /**
-     * Blob digest.
-     *
-     * @return Digest.
+     * Repository name.
      */
-    Digest digest();
+    private final RepoName name;
 
     /**
-     * Read blob size.
-     *
-     * @return Size of blob in bytes.
+     * Manifest reference.
      */
-    CompletionStage<Long> size();
+    private final ManifestRef ref;
 
     /**
-     * Read blob content.
+     * Ctor.
      *
-     * @return Content.
+     * @param name Repository name.
+     * @param ref Manifest reference.
      */
-    CompletionStage<Content> content();
+    ManifestPath(final RepoName name, final ManifestRef ref) {
+        this.name = name;
+        this.ref = ref;
+    }
+
+    /**
+     * Build path string.
+     *
+     * @return Path string.
+     */
+    public String string() {
+        return String.format("/v2/%s/manifests/%s", this.name.value(), this.ref.string());
+    }
 }

@@ -21,32 +21,36 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+package com.artipie.docker.proxy;
 
-package com.artipie.docker;
-
-import com.artipie.asto.Content;
-import java.util.Optional;
-import java.util.concurrent.CompletionStage;
+import com.artipie.docker.Docker;
+import com.artipie.docker.Repo;
+import com.artipie.docker.RepoName;
+import com.artipie.http.Slice;
 
 /**
- * Docker registry blob store.
- * @since 0.1
+ * Proxy {@link Docker} implementation.
+ *
+ * @since 0.3
  */
-public interface BlobStore {
+public final class ProxyDocker implements Docker {
 
     /**
-     * Load blob by digest.
-     * @param digest Blob digest
-     * @return Async publisher output
+     * Remote repository.
      */
-    CompletionStage<Optional<Blob>> blob(Digest digest);
+    private final Slice remote;
 
     /**
-     * Put data into blob store and calculate its digest.
-     * @param blob Data flow
-     * @param digest Digest of the data
-     * @return Future with digest
+     * Ctor.
+     *
+     * @param remote Remote repository.
      */
-    CompletionStage<Blob> put(Content blob, Digest digest);
+    public ProxyDocker(final Slice remote) {
+        this.remote = remote;
+    }
+
+    @Override
+    public Repo repo(final RepoName name) {
+        return new ProxyRepo(this.remote, name);
+    }
 }
-

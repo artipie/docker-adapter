@@ -66,6 +66,13 @@ public interface Upload {
     CompletionStage<Content> content();
 
     /**
+     * Get offset for the uploaded content.
+     *
+     * @return Offset.
+     */
+    CompletionStage<Long> offset();
+
+    /**
      * Deletes upload blob data.
      *
      * @return Completion or error signal.

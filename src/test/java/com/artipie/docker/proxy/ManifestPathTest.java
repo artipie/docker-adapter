@@ -21,36 +21,30 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.artipie.docker;
+package com.artipie.docker.proxy;
 
-import com.artipie.asto.Content;
-import java.util.concurrent.CompletionStage;
+import com.artipie.docker.RepoName;
+import com.artipie.docker.ref.ManifestRef;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.core.IsEqual;
+import org.junit.jupiter.api.Test;
 
 /**
- * Blob stored in repository.
+ * Tests for {@link ManifestPath}.
  *
- * @since 0.2
+ * @since 0.3
  */
-public interface Blob {
+class ManifestPathTest {
 
-    /**
-     * Blob digest.
-     *
-     * @return Digest.
-     */
-    Digest digest();
-
-    /**
-     * Read blob size.
-     *
-     * @return Size of blob in bytes.
-     */
-    CompletionStage<Long> size();
-
-    /**
-     * Read blob content.
-     *
-     * @return Content.
-     */
-    CompletionStage<Content> content();
+    @Test
+    void shouldBuildPathString() {
+        final ManifestPath path = new ManifestPath(
+            new RepoName.Valid("some/image"),
+            new ManifestRef.FromString("my-ref")
+        );
+        MatcherAssert.assertThat(
+            path.string(),
+            new IsEqual<>("/v2/some/image/manifests/my-ref")
+        );
+    }
 }

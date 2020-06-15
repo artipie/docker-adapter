@@ -21,36 +21,56 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.artipie.docker;
+package com.artipie.docker.proxy;
 
-import com.artipie.asto.Content;
-import java.util.concurrent.CompletionStage;
+import com.artipie.docker.Layers;
+import com.artipie.docker.Manifests;
+import com.artipie.docker.Repo;
+import com.artipie.docker.RepoName;
+import com.artipie.docker.Uploads;
+import com.artipie.http.Slice;
 
 /**
- * Blob stored in repository.
+ * Proxy implementation of {@link Repo}.
  *
- * @since 0.2
+ * @since 0.3
  */
-public interface Blob {
+@SuppressWarnings({"PMD.UnusedPrivateField", "PMD.SingularField"})
+public final class ProxyRepo implements Repo {
 
     /**
-     * Blob digest.
-     *
-     * @return Digest.
+     * Remote repository.
      */
-    Digest digest();
+    private final Slice remote;
 
     /**
-     * Read blob size.
-     *
-     * @return Size of blob in bytes.
+     * Repository name.
      */
-    CompletionStage<Long> size();
+    private final RepoName name;
 
     /**
-     * Read blob content.
+     * Ctor.
      *
-     * @return Content.
+     * @param remote Remote repository.
+     * @param name Repository name.
      */
-    CompletionStage<Content> content();
+    public ProxyRepo(final Slice remote, final RepoName name) {
+        this.remote = remote;
+        this.name = name;
+    }
+
+    @Override
+    public Layers layers() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Manifests manifests() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Uploads uploads() {
+        throw new UnsupportedOperationException();
+    }
 }

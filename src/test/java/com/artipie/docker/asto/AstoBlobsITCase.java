@@ -27,7 +27,6 @@ import com.artipie.asto.Content;
 import com.artipie.asto.Key;
 import com.artipie.asto.blocking.BlockingStorage;
 import com.artipie.asto.memory.InMemoryStorage;
-import com.artipie.docker.BlobStore;
 import com.artipie.docker.Digest;
 import io.reactivex.Flowable;
 import java.nio.ByteBuffer;
@@ -44,7 +43,7 @@ final class AstoBlobsITCase {
     @Test
     void saveBlobDataAtCorrectPath() throws Exception {
         final InMemoryStorage storage = new InMemoryStorage();
-        final BlobStore blobs = new AstoBlobs(storage);
+        final AstoBlobs blobs = new AstoBlobs(storage);
         final ByteBuffer buf = ByteBuffer.wrap(new byte[]{0x00, 0x01, 0x02, 0x03});
         final Digest digest = blobs.put(
             new Content.From(Flowable.fromArray(buf)), new Digest.Sha256(buf.array())
@@ -70,7 +69,7 @@ final class AstoBlobsITCase {
 
     @Test
     void writeAndReadBlob() throws Exception {
-        final BlobStore blobs = new AstoBlobs(new InMemoryStorage());
+        final AstoBlobs blobs = new AstoBlobs(new InMemoryStorage());
         final ByteBuffer buf = ByteBuffer.wrap(new byte[] {0x05, 0x06, 0x07, 0x08});
         final Digest digest = blobs.put(
             new Content.From(Flowable.fromArray(buf)), new Digest.Sha256(buf.array())
@@ -86,7 +85,7 @@ final class AstoBlobsITCase {
 
     @Test
     void readAbsentBlob() throws Exception {
-        final BlobStore blobs = new AstoBlobs(new InMemoryStorage());
+        final AstoBlobs blobs = new AstoBlobs(new InMemoryStorage());
         final Digest digest = new Digest.Sha256(
             "0123456789012345678901234567890123456789012345678901234567890123"
         );

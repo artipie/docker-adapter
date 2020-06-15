@@ -21,36 +21,27 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.artipie.docker;
+package com.artipie.docker.proxy;
 
-import com.artipie.asto.Content;
-import java.util.concurrent.CompletionStage;
+import com.artipie.docker.RepoName;
+import com.artipie.http.rs.StandardRs;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.core.IsInstanceOf;
+import org.junit.jupiter.api.Test;
 
 /**
- * Blob stored in repository.
+ * Tests for {@link ProxyDocker}.
  *
- * @since 0.2
+ * @since 0.3
  */
-public interface Blob {
+final class ProxyDockerTest {
 
-    /**
-     * Blob digest.
-     *
-     * @return Digest.
-     */
-    Digest digest();
-
-    /**
-     * Read blob size.
-     *
-     * @return Size of blob in bytes.
-     */
-    CompletionStage<Long> size();
-
-    /**
-     * Read blob content.
-     *
-     * @return Content.
-     */
-    CompletionStage<Content> content();
+    @Test
+    void createsProxyRepo() {
+        final ProxyDocker docker = new ProxyDocker((line, headers, body) -> StandardRs.EMPTY);
+        MatcherAssert.assertThat(
+            docker.repo(new RepoName.Simple("test")),
+            new IsInstanceOf(ProxyRepo.class)
+        );
+    }
 }

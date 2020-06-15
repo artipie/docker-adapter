@@ -98,18 +98,6 @@ class AstoUploadTest {
     }
 
     @Test
-    void shouldFailReadEmptyContent() {
-        this.upload.start().toCompletableFuture().join();
-        MatcherAssert.assertThat(
-            Assertions.assertThrows(
-                CompletionException.class,
-                this::contentFromUpload
-            ).getCause(),
-            new IsInstanceOf(IllegalStateException.class)
-        );
-    }
-
-    @Test
     void shouldFailAppendedSecondChunk() {
         this.upload.start().toCompletableFuture().join();
         this.upload.append(Flowable.just(ByteBuffer.wrap("one".getBytes())))

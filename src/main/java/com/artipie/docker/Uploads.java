@@ -21,36 +21,31 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
 package com.artipie.docker;
 
-import com.artipie.asto.Content;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 /**
- * Blob stored in repository.
+ * Docker repository files and metadata.
  *
- * @since 0.2
+ * @since 0.3
  */
-public interface Blob {
+public interface Uploads {
 
     /**
-     * Blob digest.
+     * Start new upload.
      *
-     * @return Digest.
+     * @return Upload.
      */
-    Digest digest();
+    CompletionStage<Upload> start();
 
     /**
-     * Read blob size.
+     * Find upload by UUID.
      *
-     * @return Size of blob in bytes.
+     * @param uuid Upload UUID.
+     * @return Upload.
      */
-    CompletionStage<Long> size();
-
-    /**
-     * Read blob content.
-     *
-     * @return Content.
-     */
-    CompletionStage<Content> content();
+    CompletionStage<Optional<Upload>> get(String uuid);
 }

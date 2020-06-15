@@ -63,7 +63,7 @@ class BlobEntityGetTest {
     }
 
     @Test
-    void shouldReturnLayer() {
+    void shouldReturnLayer() throws Exception {
         final String digest = String.format(
             "%s:%s",
             "sha256",

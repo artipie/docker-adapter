@@ -56,4 +56,12 @@ final class AstoRepoTest {
             Matchers.instanceOf(AstoLayers.class)
         );
     }
+
+    @Test
+    void shouldCreateAstoManifests() {
+        MatcherAssert.assertThat(
+            this.repo.manifests(),
+            Matchers.instanceOf(AstoManifests.class)
+        );
+    }
 }

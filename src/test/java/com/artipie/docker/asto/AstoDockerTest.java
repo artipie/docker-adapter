@@ -42,12 +42,4 @@ final class AstoDockerTest {
             Matchers.instanceOf(AstoRepo.class)
         );
     }
-
-    @Test
-    void createsAstoBlobStore() {
-        MatcherAssert.assertThat(
-            new AstoDocker(new InMemoryStorage()).blobStore(),
-            Matchers.instanceOf(AstoBlobs.class)
-        );
-    }
 }

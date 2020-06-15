@@ -25,7 +25,6 @@ package com.artipie.docker;
 
 import com.artipie.asto.Storage;
 import com.artipie.asto.fs.FileStorage;
-import io.vertx.reactivex.core.Vertx;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 
@@ -40,7 +39,7 @@ public final class ExampleStorage extends Storage.Wrap {
      * Ctor.
      */
     public ExampleStorage() {
-        super(new FileStorage(path(), Vertx.vertx().fileSystem()));
+        super(new FileStorage(path()));
     }
 
     /**

@@ -25,15 +25,7 @@ package com.artipie.docker.http;
 
 import com.artipie.asto.memory.InMemoryStorage;
 import com.artipie.docker.asto.AstoDocker;
-import com.artipie.http.slice.LoggingSlice;
-import com.artipie.vertx.VertxSliceServer;
-import com.google.common.collect.ImmutableList;
-import com.jcabi.log.Logger;
-import io.vertx.reactivex.core.Vertx;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.UUID;
 import org.hamcrest.Matcher;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -53,57 +45,29 @@ import org.junit.jupiter.api.io.TempDir;
  *  to separate classes.
  * @checkstyle ClassDataAbstractionCouplingCheck (500 lines)
  */
-@SuppressWarnings({"PMD.TooManyMethods", "PMD.AvoidDuplicateLiterals"})
-final class DockerSliceITCase {
-
-    // @checkstyle VisibilityModifierCheck (5 lines)
-    /**
-     * Temporary directory.
-     */
-    @TempDir
-    Path temp;
-
-    /**
-     * Vert.x instance to use in tests.
-     */
-    private Vertx vertx;
-
-    /**
-     * HTTP server hosting repository.
-     */
-    private VertxSliceServer server;
-
-    /**
-     * Repository URL.
-     */
-    private String repo;
-
+@SuppressWarnings({
+    "PMD.TooManyMethods",
+    "PMD.AvoidDuplicateLiterals",
+    "PMD.UseObjectForClearerAPI"
+})
+final class DockerSliceITCase extends AbstractDockerITCase {
     /**
      * Example image to use in tests.
      */
     private Image image;
 
     @BeforeEach
-    void setUp() throws Exception {
-        this.vertx = Vertx.vertx();
-        this.ensureDockerInstalled();
-        this.server = new VertxSliceServer(
-            this.vertx,
-            new LoggingSlice(new DockerSlice(new AstoDocker(new InMemoryStorage())))
+    void setUp(@TempDir final Path temp) throws Exception {
+        final String repo = this.startServer(
+            temp,
+            new DockerSlice(new AstoDocker(new InMemoryStorage()))
         );
-        final int port = this.server.start();
-        this.repo = String.format("localhost:%s", port);
-        this.image = this.prepareImage();
+        this.image = this.prepareImage(repo);
     }
 
     @AfterEach
     void tearDown() {
-        if (this.server != null) {
-            this.server.stop();
-        }
-        if (this.vertx != null) {
-            this.vertx.close();
-        }
+        this.stopServer();
     }
 
     @Test
@@ -155,43 +119,12 @@ final class DockerSliceITCase {
         );
     }
 
-    private String run(final String... args) throws Exception {
-        final Path stdout = this.temp.resolve(
-            String.format("%s-stdout.txt", UUID.randomUUID().toString())
-        );
-        final List<String> command = ImmutableList.<String>builder()
-            .add("docker")
-            .add(args)
-            .build();
-        Logger.debug(this, "Command:\n%s", String.join(" ", command));
-        final int code = new ProcessBuilder()
-            .directory(this.temp.toFile())
-            .command(command)
-            .redirectOutput(stdout.toFile())
-            .redirectErrorStream(true)
-            .start()
-            .waitFor();
-        final String log = new String(Files.readAllBytes(stdout));
-        Logger.debug(this, "Full stdout/stderr:\n%s", log);
-        if (code != 0) {
-            throw new IllegalStateException(String.format("Not OK exit code: %d", code));
-        }
-        return log;
-    }
-
-    private void ensureDockerInstalled() throws Exception {
-        final String output = this.run("--version");
-        if (!output.startsWith("Docker version")) {
-            throw new IllegalStateException("Docker not installed");
-        }
-    }
-
-    private Image prepareImage() throws Exception {
+    private Image prepareImage(final String repo) throws Exception {
         final Image img;
         if (System.getProperty("os.name").startsWith("Windows")) {
-            img = this.windowsImage();
+            img = this.windowsImage(repo);
         } else {
-            img = this.linuxImage();
+            img = this.linuxImage(repo);
         }
         return img;
     }
@@ -200,11 +133,13 @@ final class DockerSliceITCase {
      * Prepare `mcr.microsoft.com/dotnet/core/runtime:3.1.4-nanoserver-1809` image
      * for Windows Server 2019 amd64 architecture.
      *
+     * @param repo Repository URL.
      * @return Prepared image.
      * @throws Exception In case preparation fails.
      */
-    private Image windowsImage() throws Exception {
+    private Image windowsImage(final String repo) throws Exception {
         return this.prepare(
+            repo,
             "mcr.microsoft.com/dotnet/core/runtime",
             String.format(
                 "%s:%s",
@@ -218,11 +153,13 @@ final class DockerSliceITCase {
     /**
      * Prepare `amd64/busybox:1.31.1` image for linux/amd64 architecture.
      *
+     * @param repo Repository URL.
      * @return Prepared image.
      * @throws Exception In case preparation fails.
      */
-    private Image linuxImage() throws Exception {
+    private Image linuxImage(final String repo) throws Exception {
         return this.prepare(
+            repo,
             "busybox",
             String.format(
                 "%s:%s",
@@ -233,13 +170,17 @@ final class DockerSliceITCase {
         );
     }
 
-    private Image prepare(final String name, final String digest, final String layer)
-        throws Exception {
+    // @checkstyle ParameterNumberCheck (5 lines)
+    private Image prepare(
+        final String repo,
+        final String name,
+        final String digest,
+        final String layer) throws Exception {
         final String original = String.format("%s@%s", name, digest);
         this.run("pull", original);
         final String local = "my-test";
         this.run("tag", original, String.format("%s:latest", local));
-        final Image img = new Image(local, digest, layer);
+        final Image img = new Image(repo, local, digest, layer);
         this.run("tag", original, img.remote());
         return img;
     }
@@ -249,7 +190,12 @@ final class DockerSliceITCase {
      *
      * @since 0.2
      */
-    private class Image {
+    private static class Image {
+
+        /**
+         * Repo URL.
+         */
+        private final String repo;
 
         /**
          * Image name.
@@ -266,7 +212,9 @@ final class DockerSliceITCase {
          */
         private final String layer;
 
-        Image(final String name, final String digest, final String layer) {
+        // @checkstyle ParameterNumberCheck (5 lines)
+        Image(final String repo, final String name, final String digest, final String layer) {
+            this.repo = repo;
             this.name = name;
             this.digest = digest;
             this.layer = layer;
@@ -277,7 +225,7 @@ final class DockerSliceITCase {
         }
 
         public String remote() {
-            return String.format("%s/%s", DockerSliceITCase.this.repo, this.local());
+            return String.format("%s/%s", this.repo, this.local());
         }
 
         public String remoteByDigest() {

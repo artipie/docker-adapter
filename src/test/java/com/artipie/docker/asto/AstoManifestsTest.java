@@ -29,7 +29,6 @@ import com.artipie.asto.Storage;
 import com.artipie.docker.Blob;
 import com.artipie.docker.Digest;
 import com.artipie.docker.ExampleStorage;
-import com.artipie.docker.Repo;
 import com.artipie.docker.RepoName;
 import com.artipie.docker.Tag;
 import com.artipie.docker.manifest.Manifest;
@@ -42,15 +41,17 @@ import org.hamcrest.Matchers;
 import org.hamcrest.core.IsEqual;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 /**
- * Integration tests for {@link AstoRepo}.
+ * Tests for {@link AstoManifests}.
  *
- * @since 0.1
+ * @since 0.3
  * @checkstyle ClassDataAbstractionCouplingCheck (500 lines)
+ * @checkstyle MagicNumberCheck (500 lines)
  */
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
-final class AstoRepoITCase {
+final class AstoManifestsTest {
 
     /**
      * Storage used in tests.
@@ -58,14 +59,14 @@ final class AstoRepoITCase {
     private Storage storage;
 
     /**
-     * Repository being tested.
+     * Repository manifests being tested.
      */
-    private Repo repo;
+    private AstoManifests manifests;
 
     @BeforeEach
     void setUp() {
         this.storage = new ExampleStorage();
-        this.repo = new AstoRepo(
+        this.manifests = new AstoManifests(
             this.storage,
             new AstoBlobs(this.storage),
             new RepoName.Simple("my-alpine")
@@ -73,6 +74,7 @@ final class AstoRepoITCase {
     }
 
     @Test
+    @Timeout(5)
     void shouldReadManifest() {
         final ManifestRef ref = new ManifestRef.FromTag(new Tag.Valid("1"));
         final byte[] manifest = this.manifest(ref);
@@ -81,14 +83,16 @@ final class AstoRepoITCase {
     }
 
     @Test
+    @Timeout(5)
     void shouldReadNoManifestIfAbsent() throws Exception {
-        final Optional<Manifest> manifest = this.repo.manifest(
+        final Optional<Manifest> manifest = this.manifests.get(
             new ManifestRef.FromTag(new Tag.Valid("2"))
         ).toCompletableFuture().get();
         MatcherAssert.assertThat(manifest.isPresent(), new IsEqual<>(false));
     }
 
     @Test
+    @Timeout(5)
     void shouldReadAddedManifest() {
         final byte[] conf = "config".getBytes();
         final Blob config = new AstoBlobs(this.storage)
@@ -115,7 +119,7 @@ final class AstoRepoITCase {
             )
             .build().toString().getBytes();
         final ManifestRef ref = new ManifestRef.FromTag(new Tag.Valid("some-tag"));
-        final Manifest manifest = this.repo.addManifest(ref, new Content.From(data))
+        final Manifest manifest = this.manifests.put(ref, new Content.From(data))
             .toCompletableFuture().join();
         MatcherAssert.assertThat(this.manifest(ref), new IsEqual<>(data));
         MatcherAssert.assertThat(
@@ -125,13 +129,9 @@ final class AstoRepoITCase {
     }
 
     private byte[] manifest(final ManifestRef ref) {
-        return this.repo.manifest(ref)
-            .thenApply(
-                opt ->
-                    opt.map(
-                        mnf -> new ByteBufPublisher(mnf.content())
-                            .bytes().toCompletableFuture().join()
-                    ).orElseThrow()
+        return this.manifests.get(ref)
+            .thenCompose(
+                opt -> opt.map(mnf -> new ByteBufPublisher(mnf.content()).bytes()).orElseThrow()
             ).toCompletableFuture().join();
     }
 }

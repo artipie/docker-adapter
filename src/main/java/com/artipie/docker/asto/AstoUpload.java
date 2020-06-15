@@ -29,7 +29,6 @@ import com.artipie.asto.Storage;
 import com.artipie.docker.RepoName;
 import com.artipie.docker.Upload;
 import java.nio.ByteBuffer;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import org.reactivestreams.Publisher;
@@ -87,10 +86,7 @@ public final class AstoUpload implements Upload {
                 if (size > 0) {
                     throw new UnsupportedOperationException("Multiple chunks are not supported");
                 }
-                final Key tmp = new Key.From(this.root(), UUID.randomUUID().toString());
-                return this.storage.save(tmp, new Content.From(chunk)).thenCompose(
-                    ignored -> this.storage.move(tmp, this.data())
-                ).thenCompose(
+                return this.storage.save(this.data(), new Content.From(chunk)).thenCompose(
                     ignored -> this.storage.size(this.data()).thenApply(updated -> updated - 1)
                 );
             }
@@ -99,15 +95,12 @@ public final class AstoUpload implements Upload {
 
     @Override
     public CompletionStage<Content> content() {
-        return this.storage.size(this.data()).thenCompose(
-            size -> {
-                if (size > 0) {
-                    return this.storage.value(this.data());
-                } else {
-                    throw new IllegalStateException("No content was uploaded yet");
-                }
-            }
-        );
+        return this.storage.value(this.data());
+    }
+
+    @Override
+    public CompletionStage<Long> offset() {
+        return this.storage.size(this.data()).thenApply(size -> Math.max(size - 1, 0));
     }
 
     @Override

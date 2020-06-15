@@ -21,36 +21,45 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.artipie.docker;
+package com.artipie.docker.proxy;
 
-import com.artipie.asto.Content;
-import java.util.concurrent.CompletionStage;
+import com.artipie.docker.Digest;
+import com.artipie.docker.RepoName;
 
 /**
- * Blob stored in repository.
+ * Path to blob resource.
  *
- * @since 0.2
+ * @since 0.3
  */
-public interface Blob {
+final class BlobPath {
+
+    /**
+     * Repository name.
+     */
+    private final RepoName name;
 
     /**
      * Blob digest.
-     *
-     * @return Digest.
      */
-    Digest digest();
+    private final Digest digest;
 
     /**
-     * Read blob size.
+     * Ctor.
      *
-     * @return Size of blob in bytes.
+     * @param name Repository name.
+     * @param digest Blob digest.
      */
-    CompletionStage<Long> size();
+    BlobPath(final RepoName name, final Digest digest) {
+        this.name = name;
+        this.digest = digest;
+    }
 
     /**
-     * Read blob content.
+     * Build path string.
      *
-     * @return Content.
+     * @return Path string.
      */
-    CompletionStage<Content> content();
+    public String string() {
+        return String.format("/v2/%s/blobs/%s", this.name.value(), this.digest.string());
+    }
 }

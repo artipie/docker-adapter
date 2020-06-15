@@ -25,6 +25,7 @@ package com.artipie.docker.http;
 
 import com.artipie.docker.Digest;
 import com.artipie.docker.Docker;
+import com.artipie.docker.RepoName;
 import com.artipie.http.Response;
 import com.artipie.http.Slice;
 import com.artipie.http.async.AsyncResponse;
@@ -52,28 +53,13 @@ final class BlobEntity {
      * RegEx pattern for path.
      */
     public static final Pattern PATH = Pattern.compile(
-        "^/v2/[^/]*/blobs/(?<digest>.*)$"
+        "^/v2/(?<name>[^/]*)/blobs/(?<digest>(?!(uploads/)).*)$"
     );
 
     /**
      * Ctor.
      */
     private BlobEntity() {
-    }
-
-    /**
-     * Read digest from HTTP request line.
-     *
-     * @param line HTTP request line.
-     * @return Digest.
-     */
-    private static Digest digest(final String line) {
-        final String path = new RequestLineFrom(line).uri().getPath();
-        final Matcher matcher = PATH.matcher(path);
-        if (!matcher.matches()) {
-            throw new IllegalStateException(String.format("Unexpected path: %s", path));
-        }
-        return new Digest.FromString(matcher.group("digest"));
     }
 
     /**
@@ -103,9 +89,10 @@ final class BlobEntity {
             final Iterable<Map.Entry<String, String>> headers,
             final Publisher<ByteBuffer> body
         ) {
-            final Digest digest = digest(line);
+            final Request request = new Request(line);
+            final Digest digest = request.digest();
             return new AsyncResponse(
-                this.docker.blobStore().blob(digest).thenApply(
+                this.docker.repo(request.name()).layers().get(digest).thenApply(
                     found -> found.<Response>map(
                         blob -> new AsyncResponse(
                             blob.content().thenCompose(
@@ -155,9 +142,9 @@ final class BlobEntity {
             final Iterable<Map.Entry<String, String>> headers,
             final Publisher<ByteBuffer> body
         ) {
-            final Digest digest = digest(line);
+            final Request request = new Request(line);
             return new AsyncResponse(
-                this.docker.blobStore().blob(digest).thenApply(
+                this.docker.repo(request.name()).layers().get(request.digest()).thenApply(
                     found -> found.<Response>map(
                         blob -> new AsyncResponse(
                             blob.size().thenApply(size -> new BaseResponse(blob.digest(), size))
@@ -192,6 +179,63 @@ final class BlobEntity {
                     new ContentType("application/octet-stream")
                 )
             );
+        }
+    }
+
+    /**
+     * HTTP request to blob entity.
+     *
+     * @since 0.2
+     * @todo #167:30min Add test coverage for `BlobEntity.Request` class.
+     *  This class lacks test coverage. It should be tested both against
+     *  valid and invalid request lines.
+     */
+    private static final class Request {
+
+        /**
+         * HTTP request line.
+         */
+        private final String line;
+
+        /**
+         * Ctor.
+         *
+         * @param line HTTP request line.
+         */
+        Request(final String line) {
+            this.line = line;
+        }
+
+        /**
+         * Get repository name.
+         *
+         * @return Repository name.
+         */
+        RepoName name() {
+            return new RepoName.Valid(this.path().group("name"));
+        }
+
+        /**
+         * Get digest.
+         *
+         * @return Digest.
+         */
+        Digest digest() {
+            return new Digest.FromString(this.path().group("digest"));
+        }
+
+        /**
+         * Matches request path by RegEx pattern.
+         *
+         * @return Path matcher.
+         */
+        private Matcher path() {
+            final String path = new RequestLineFrom(this.line).uri().getPath();
+            final Matcher matcher = PATH.matcher(path);
+            if (!matcher.matches()) {
+                throw new IllegalStateException(String.format("Unexpected path: %s", path));
+            }
+            return matcher;
         }
     }
 }

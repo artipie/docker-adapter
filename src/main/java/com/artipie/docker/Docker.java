@@ -37,10 +37,4 @@ public interface Docker {
      * @return Repository object
      */
     Repo repo(RepoName name);
-
-    /**
-     * Docker blob store.
-     * @return Blob store for this registry
-     */
-    BlobStore blobStore();
 }

@@ -24,11 +24,11 @@
 package com.artipie.docker.http;
 
 import com.artipie.asto.Content;
-import com.artipie.asto.Storage;
 import com.artipie.asto.memory.InMemoryStorage;
 import com.artipie.docker.Blob;
 import com.artipie.docker.Digest;
-import com.artipie.docker.asto.AstoBlobs;
+import com.artipie.docker.Docker;
+import com.artipie.docker.RepoName;
 import com.artipie.docker.asto.AstoDocker;
 import com.artipie.http.hm.RsHasHeaders;
 import com.artipie.http.hm.RsHasStatus;
@@ -59,14 +59,14 @@ class ManifestEntityPutTest {
     private DockerSlice slice;
 
     /**
-     * Storage used in tests.
+     * Docker used in tests.
      */
-    private Storage storage;
+    private Docker docker;
 
     @BeforeEach
     void setUp() {
-        this.storage = new InMemoryStorage();
-        this.slice = new DockerSlice("/base", new AstoDocker(this.storage));
+        this.docker = new AstoDocker(new InMemoryStorage());
+        this.slice = new DockerSlice("/base", this.docker);
     }
 
     @Test
@@ -124,9 +124,9 @@ class ManifestEntityPutTest {
      */
     private Flowable<ByteBuffer> manifest() {
         final byte[] content = "config".getBytes();
-        final Blob config = new AstoBlobs(this.storage).put(
-            new Content.From(content), new Digest.Sha256(content)
-        ).toCompletableFuture().join();
+        final Blob config = this.docker.repo(new RepoName.Valid("my-alpine")).layers()
+            .put(new Content.From(content), new Digest.Sha256(content))
+            .toCompletableFuture().join();
         final byte[] data = String.format(
             "{\"config\":{\"digest\":\"%s\"},\"layers\":[]}",
             config.digest().string()

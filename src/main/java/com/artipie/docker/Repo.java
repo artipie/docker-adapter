@@ -24,12 +24,6 @@
 
 package com.artipie.docker;
 
-import com.artipie.asto.Content;
-import com.artipie.docker.manifest.Manifest;
-import com.artipie.docker.ref.ManifestRef;
-import java.util.Optional;
-import java.util.concurrent.CompletionStage;
-
 /**
  * Docker repository files and metadata.
  * @since 0.1
@@ -44,33 +38,16 @@ public interface Repo {
     Layers layers();
 
     /**
-     * Adds manifest stored as blob.
+     * Repository manifests.
      *
-     * @param ref Manifest reference.
-     * @param content Manifest content.
-     * @return Added manifest.
+     * @return Manifests.
      */
-    CompletionStage<Manifest> addManifest(ManifestRef ref, Content content);
+    Manifests manifests();
 
     /**
-     * Resolve docker image manifest file by reference.
-     * @param ref Manifest reference
-     * @return Flow with manifest data, or empty if absent
-     */
-    CompletionStage<Optional<Manifest>> manifest(ManifestRef ref);
-
-    /**
-     * Start new upload.
+     * Repository uploads.
      *
-     * @return Upload.
+     * @return Uploads.
      */
-    CompletionStage<Upload> startUpload();
-
-    /**
-     * Find upload by UUID.
-     *
-     * @param uuid Upload UUID.
-     * @return Upload.
-     */
-    CompletionStage<Optional<Upload>> upload(String uuid);
+    Uploads uploads();
 }
