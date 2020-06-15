@@ -37,20 +37,20 @@ import javax.json.Json;
  *
  * @since 0.2
  */
-abstract class DockerErrors extends  Response.Wrap {
+abstract class ErrorResponse extends  Response.Wrap {
 
     /**
      * Ctor.
      * @param status Http status
      * @param buff Origin response
      */
-    private DockerErrors(final RsStatus status, final ByteBuffer buff) {
+    private ErrorResponse(final RsStatus status, final ByteBuffer buff) {
         super(
             new RsWithBody(
                 new RsWithHeaders(
                     new RsWithStatus(status),
                     new Headers.From(
-                    "Content-Type", "application/json"
+                    "Content-Type", "application/json; charset=utf-8"
                     )
                 ),
                 buff
@@ -67,7 +67,7 @@ abstract class DockerErrors extends  Response.Wrap {
      * @checkstyle LineLengthCheck (10 lines)
      * @checkstyle ParameterNumberCheck (4 lines)
      */
-    DockerErrors(final RsStatus status, final String code, final String message, final String detail) {
+    ErrorResponse(final RsStatus status, final String code, final String message, final String detail) {
         this(
             status,
             ByteBuffer.wrap(
@@ -87,7 +87,7 @@ abstract class DockerErrors extends  Response.Wrap {
      * Internal error with json body.
      * @since 0.2
      */
-    final class BlobUnknownError extends DockerErrors {
+    final class BlobUnknownError extends ErrorResponse {
 
         /**
          * Ctor.
@@ -103,14 +103,14 @@ abstract class DockerErrors extends  Response.Wrap {
      * Internal error with json body.
      * @since 0.2
      */
-    final class NanifestInvalidError extends DockerErrors {
+    final class ManifestInvalidError extends ErrorResponse {
 
         /**
          * Ctor.
          *
          * @param detail Detail of the response.
          */
-        NanifestInvalidError(final String detail) {
+        ManifestInvalidError(final String detail) {
             super(RsStatus.BAD_REQUEST, "MANIFEST_INVALID", "manifest invalid", detail);
         }
     }
