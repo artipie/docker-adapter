@@ -23,55 +23,95 @@
  */
 package com.artipie.docker.http;
 
-import com.artipie.http.Connection;
+import com.artipie.http.Headers;
 import com.artipie.http.Response;
 import com.artipie.http.rs.RsStatus;
-import java.util.concurrent.CompletionStage;
+import com.artipie.http.rs.RsWithBody;
+import com.artipie.http.rs.RsWithHeaders;
+import com.artipie.http.rs.RsWithStatus;
+import java.nio.ByteBuffer;
+import javax.json.Json;
 
 /**
  * Docker response in case of errors.
  *
  * @since 0.2
  */
-enum DockerErrors implements Response {
-    /**
-     * Internal error with json.
-     */
-    BLOB_UNKNOWN(
-        new ErrorResponse(
-            RsStatus.BAD_REQUEST,
-                "BLOB_UNKNOWN",
-                "blob unknown to registry",
-                ""
-        )
-    ),
-
-    /**
-     * Internal error with json.
-     */
-    MANIFEST_INVALID(
-        new ErrorResponse(
-            RsStatus.BAD_REQUEST,
-                "MANIFEST_INVALID",
-                "manifest invalid",
-                ""
-        )
-    );
-    /**
-     * Origin response.
-     */
-    private final Response origin;
+abstract class DockerErrors extends  Response.Wrap {
 
     /**
      * Ctor.
-     * @param origin Origin response
+     * @param status Http status
+     * @param buff Origin response
      */
-    DockerErrors(final Response origin) {
-        this.origin = origin;
+    private DockerErrors(final RsStatus status, final ByteBuffer buff) {
+        super(
+            new RsWithBody(
+                new RsWithHeaders(
+                    new RsWithStatus(status),
+                    new Headers.From(
+                    "Content-Type", "application/json"
+                    )
+                ),
+                buff
+            )
+        );
     }
 
-    @Override
-    public CompletionStage<Void> send(final Connection connection) {
-        return this.origin.send(connection);
+    /**
+     * Ctor.
+     * @param status HTTP status of response
+     * @param code Code of response
+     * @param message Message of response
+     * @param detail More detail about of  response
+     * @checkstyle LineLengthCheck (10 lines)
+     * @checkstyle ParameterNumberCheck (4 lines)
+     */
+    DockerErrors(final RsStatus status, final String code, final String message, final String detail) {
+        this(
+            status,
+            ByteBuffer.wrap(
+                Json.createObjectBuilder()
+                .add(
+                "errors",
+                    Json.createObjectBuilder().add("code", code)
+                        .add("message", message)
+                        .add("detail", detail)
+                )
+                .build().toString().getBytes()
+            )
+        );
+    }
+
+    /**
+     * Internal error with json body.
+     * @since 0.2
+     */
+    final class BlobUnknownError extends DockerErrors {
+
+        /**
+         * Ctor.
+         *
+         * @param detail Detail of the response.
+         */
+        BlobUnknownError(final String detail) {
+            super(RsStatus.BAD_REQUEST, "BLOB_UNKNOWN", "blob unknown to registry", detail);
+        }
+    }
+
+    /**
+     * Internal error with json body.
+     * @since 0.2
+     */
+    final class NanifestInvalidError extends DockerErrors {
+
+        /**
+         * Ctor.
+         *
+         * @param detail Detail of the response.
+         */
+        NanifestInvalidError(final String detail) {
+            super(RsStatus.BAD_REQUEST, "MANIFEST_INVALID", "manifest invalid", detail);
+        }
     }
 }
