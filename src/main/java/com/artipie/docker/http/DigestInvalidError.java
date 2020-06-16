@@ -26,7 +26,7 @@ package com.artipie.docker.http;
 import com.artipie.http.rs.RsStatus;
 
 /**
- * DIGEST_INVALID eror message with all json fields at the response body.
+ * DIGEST_INVALID error message with all json fields at the response body.
  *
  * @since 0.2
  */
