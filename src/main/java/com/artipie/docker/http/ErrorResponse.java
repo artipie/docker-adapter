@@ -35,12 +35,13 @@ import java.nio.charset.StandardCharsets;
 import javax.json.Json;
 
 /**
+ * Represent docker errors.
+ * @since 0.2
+ *
  * Docker response in case of errors.
  * @todo #117:15min Finish implementation of test.
  *  In order to ensure that errorr response works correctly, the ErrorResponseTest has been written.
  *  The test is disabled for now, we must fix that
-
- * @since 0.2
  */
 abstract class ErrorResponse extends Response.Wrap {
 
