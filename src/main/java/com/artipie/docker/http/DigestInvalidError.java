@@ -28,7 +28,7 @@ import com.artipie.http.rs.RsStatus;
 /**
  * DIGEST_INVALID error message with all json fields at the response body.
  *
- * @since 0.2
+ * @since 0.3
  */
 final class DigestInvalidError extends ErrorResponse {
 

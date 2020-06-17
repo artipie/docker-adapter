@@ -36,7 +36,7 @@ import javax.json.Json;
 
 /**
  * Represent docker errors.
- * @since 0.2
+ * @since 0.3
  *
  * Docker response in case of errors.
  * @todo #117:15min Finish implementation of test.
@@ -73,10 +73,14 @@ abstract class ErrorResponse extends Response.Wrap {
      * @param code Code of response
      * @param message Message of response
      * @param detail More detail about of  response
-     * @checkstyle LineLengthCheck (10 lines)
      * @checkstyle ParameterNumberCheck (4 lines)
      */
-    ErrorResponse(final RsStatus status, final String code, final String message, final String detail) {
+    ErrorResponse(
+        final RsStatus status,
+        final String code,
+        final String message,
+        final String detail
+    ) {
         this(
             status,
             ByteBuffer.wrap(
