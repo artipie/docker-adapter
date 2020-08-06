@@ -108,7 +108,7 @@ class UploadEntityPatchTest {
         );
         MatcherAssert.assertThat(
             response,
-            new RsHasStatus(RsStatus.NOT_FOUND)
+            new IsErrorsResponse(RsStatus.NOT_FOUND, "BLOB_UPLOAD_UNKNOWN")
         );
     }
 

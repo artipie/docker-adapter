@@ -27,6 +27,7 @@ import com.artipie.docker.Digest;
 import com.artipie.docker.Docker;
 import com.artipie.docker.Repo;
 import com.artipie.docker.RepoName;
+import com.artipie.docker.error.UploadUnknownError;
 import com.artipie.docker.misc.RqByRegex;
 import com.artipie.http.Connection;
 import com.artipie.http.Response;
@@ -140,13 +141,15 @@ public final class UploadEntity {
             final RepoName name = request.name();
             final String uuid = request.uuid();
             return new AsyncResponse(
-                this.docker.repo(name).uploads().get(uuid).thenCompose(
-                    found -> found.<CompletionStage<Response>>map(
-                        upload -> upload.append(body).thenApply(
-                            offset -> new StatusResponse(name, uuid, offset)
+                this.docker.repo(name).uploads().get(uuid).thenApply(
+                    found -> found.<Response>map(
+                        upload -> new AsyncResponse(
+                            upload.append(body).thenApply(
+                                offset -> new StatusResponse(name, uuid, offset)
+                            )
                         )
                     ).orElseGet(
-                        () -> CompletableFuture.completedStage(new RsWithStatus(RsStatus.NOT_FOUND))
+                        () -> new ErrorsResponse(RsStatus.NOT_FOUND, new UploadUnknownError(uuid))
                     )
                 )
             );
@@ -188,10 +191,10 @@ public final class UploadEntity {
             final String uuid = request.uuid();
             final Repo repo = this.docker.repo(name);
             return new AsyncResponse(
-                repo.uploads().get(uuid).<Response>thenCompose(
-                    found -> found.map(
-                        upload -> upload.content()
-                            .<Response>thenCompose(
+                repo.uploads().get(uuid).thenApply(
+                    found -> found.<Response>map(
+                        upload -> new AsyncResponse(
+                            upload.content().thenCompose(
                                 content -> repo.layers()
                                     .put(content, request.digest())
                                     .handle(
@@ -210,8 +213,9 @@ public final class UploadEntity {
                                         }
                                     ).thenCompose(Function.identity())
                             )
+                        )
                     ).orElseGet(
-                        () -> CompletableFuture.completedStage(new RsWithStatus(RsStatus.NOT_FOUND))
+                        () -> new ErrorsResponse(RsStatus.NOT_FOUND, new UploadUnknownError(uuid))
                     )
                 )
             );
@@ -266,18 +270,20 @@ public final class UploadEntity {
             final RepoName name = request.name();
             final String uuid = request.uuid();
             return new AsyncResponse(
-                this.docker.repo(name).uploads().get(uuid).thenCompose(
-                    found -> found.<CompletionStage<Response>>map(
-                        upload -> upload.offset().thenApply(
-                            offset -> new RsWithHeaders(
-                                new RsWithStatus(RsStatus.NO_CONTENT),
-                                new ContentLength("0"),
-                                new Header("Range", String.format("0-%d", offset)),
-                                new Header("Docker-Upload-UUID", uuid)
+                this.docker.repo(name).uploads().get(uuid).thenApply(
+                    found -> found.<Response>map(
+                        upload -> new AsyncResponse(
+                            upload.offset().thenApply(
+                                offset -> new RsWithHeaders(
+                                    new RsWithStatus(RsStatus.NO_CONTENT),
+                                    new ContentLength("0"),
+                                    new Header("Range", String.format("0-%d", offset)),
+                                    new Header("Docker-Upload-UUID", uuid)
+                                )
                             )
                         )
                     ).orElseGet(
-                        () -> CompletableFuture.completedStage(new RsWithStatus(RsStatus.NOT_FOUND))
+                        () -> new ErrorsResponse(RsStatus.NOT_FOUND, new UploadUnknownError(uuid))
                     )
                 )
             );
