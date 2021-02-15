@@ -26,6 +26,8 @@ jobs:
           key: ${{ runner.os }}-jdk-${{ matrix.java }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-jdk-${{ matrix.java }}-maven-
+      - run: docker info
+      - run: docker pull alpine:3.11
       - name: Build it with Maven
         run: mvn -B verify -Pqulice
   xcop-lint:
