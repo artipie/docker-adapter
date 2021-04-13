@@ -34,13 +34,11 @@ import com.artipie.docker.RepoName;
 import com.artipie.docker.Upload;
 import com.artipie.docker.error.InvalidDigestException;
 import com.artipie.docker.misc.DigestedFlowable;
-import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
-import org.reactivestreams.Publisher;
 
 /**
  * Asto implementation of {@link Upload}.
@@ -102,7 +100,7 @@ public final class AstoUpload implements Upload {
     }
 
     @Override
-    public CompletionStage<Long> append(final Publisher<ByteBuffer> chunk) {
+    public CompletionStage<Long> append(final Content chunk) {
         return this.chunks().thenCompose(
             chunks -> {
                 if (chunks.size() > 0) {
@@ -110,7 +108,7 @@ public final class AstoUpload implements Upload {
                 }
                 final Key tmp = new Key.From(this.root(), UUID.randomUUID().toString());
                 final DigestedFlowable data = new DigestedFlowable(chunk);
-                return this.storage.save(tmp, new Content.From(data)).thenCompose(
+                return this.storage.save(tmp, new Content.From(chunk.size(), data)).thenCompose(
                     nothing -> {
                         final Key key = this.chunk(data.digest());
                         return this.storage.move(tmp, key).thenApply(ignored -> key);

@@ -23,6 +23,7 @@
  */
 package com.artipie.docker.asto;
 
+import com.artipie.asto.Content;
 import com.artipie.asto.Key;
 import com.artipie.asto.Storage;
 import com.artipie.asto.ext.PublisherAs;
@@ -33,7 +34,6 @@ import com.artipie.docker.Layers;
 import com.artipie.docker.RepoName;
 import com.artipie.docker.Upload;
 import io.reactivex.Flowable;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
@@ -93,7 +93,7 @@ class AstoUploadTest {
     void shouldReturnOffsetWhenAppendedChunk() {
         final byte[] chunk = "sample".getBytes();
         this.upload.start().toCompletableFuture().join();
-        final Long offset = this.upload.append(Flowable.just(ByteBuffer.wrap(chunk)))
+        final Long offset = this.upload.append(new Content.From(chunk))
             .toCompletableFuture().join();
         MatcherAssert.assertThat(offset, new IsEqual<>((long) chunk.length - 1));
     }
@@ -102,7 +102,7 @@ class AstoUploadTest {
     void shouldReadAppendedChunk() {
         final byte[] chunk = "chunk".getBytes();
         this.upload.start().toCompletableFuture().join();
-        this.upload.append(Flowable.just(ByteBuffer.wrap(chunk))).toCompletableFuture().join();
+        this.upload.append(new Content.From(chunk)).toCompletableFuture().join();
         MatcherAssert.assertThat(
             this.upload,
             new IsUploadWithContent(chunk)
@@ -112,13 +112,13 @@ class AstoUploadTest {
     @Test
     void shouldFailAppendedSecondChunk() {
         this.upload.start().toCompletableFuture().join();
-        this.upload.append(Flowable.just(ByteBuffer.wrap("one".getBytes())))
+        this.upload.append(new Content.From("one".getBytes()))
             .toCompletableFuture()
             .join();
         MatcherAssert.assertThat(
             Assertions.assertThrows(
                 CompletionException.class,
-                () -> this.upload.append(Flowable.just(ByteBuffer.wrap("two".getBytes())))
+                () -> this.upload.append(new Content.From("two".getBytes()))
                     .toCompletableFuture()
                     .join()
             ).getCause(),
@@ -130,13 +130,13 @@ class AstoUploadTest {
     void shouldAppendedSecondChunkIfFirstOneFailed() {
         this.upload.start().toCompletableFuture().join();
         try {
-            this.upload.append(Flowable.error(new IllegalStateException()))
+            this.upload.append(new Content.From(1, Flowable.error(new IllegalStateException())))
                 .toCompletableFuture()
                 .join();
         } catch (final CompletionException ignored) {
         }
         final byte[] chunk = "content".getBytes();
-        this.upload.append(Flowable.just(ByteBuffer.wrap(chunk))).toCompletableFuture().join();
+        this.upload.append(new Content.From(chunk)).toCompletableFuture().join();
         MatcherAssert.assertThat(
             this.upload,
             new IsUploadWithContent(chunk)
@@ -147,7 +147,7 @@ class AstoUploadTest {
     void shouldRemoveUploadedFiles() throws ExecutionException, InterruptedException {
         this.upload.start().toCompletableFuture().join();
         final byte[] chunk = "some bytes".getBytes();
-        this.upload.append(Flowable.just(ByteBuffer.wrap(chunk))).toCompletableFuture().get();
+        this.upload.append(new Content.From(chunk)).toCompletableFuture().get();
         this.upload.putTo(new CapturePutLayers(), new Digest.Sha256(chunk))
             .toCompletableFuture().get();
         MatcherAssert.assertThat(

@@ -23,6 +23,7 @@
  */
 package com.artipie.docker.http;
 
+import com.artipie.asto.Content;
 import com.artipie.asto.Storage;
 import com.artipie.asto.memory.InMemoryStorage;
 import com.artipie.docker.Digest;
@@ -39,7 +40,6 @@ import com.artipie.http.rq.RequestLine;
 import com.artipie.http.rq.RqMethod;
 import com.artipie.http.rs.RsStatus;
 import io.reactivex.Flowable;
-import java.nio.ByteBuffer;
 import java.util.Optional;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.IsEqual;
@@ -79,7 +79,7 @@ class UploadEntityPutTest {
         final Upload upload = this.docker.repo(new RepoName.Valid(name)).uploads()
             .start()
             .toCompletableFuture().join();
-        upload.append(Flowable.just(ByteBuffer.wrap("data".getBytes())))
+        upload.append(new Content.From("data".getBytes()))
             .toCompletableFuture().join();
         final String digest = String.format(
             "%s:%s",
@@ -116,8 +116,7 @@ class UploadEntityPutTest {
         final byte[] content = "something".getBytes();
         final Upload upload = this.docker.repo(new RepoName.Valid(name)).uploads().start()
             .toCompletableFuture().join();
-        upload.append(Flowable.just(ByteBuffer.wrap(content)))
-            .toCompletableFuture().join();
+        upload.append(new Content.From(content)).toCompletableFuture().join();
         MatcherAssert.assertThat(
             "Returns 400 status",
             this.slice,
