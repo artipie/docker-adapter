@@ -23,9 +23,8 @@
  */
 package com.artipie.docker;
 
-import java.nio.ByteBuffer;
+import com.artipie.asto.Content;
 import java.util.concurrent.CompletionStage;
-import org.reactivestreams.Publisher;
 
 /**
  * Blob upload.
@@ -55,7 +54,7 @@ public interface Upload {
      * @param chunk Chunk of data.
      * @return Offset after appending chunk.
      */
-    CompletionStage<Long> append(Publisher<ByteBuffer> chunk);
+    CompletionStage<Long> append(Content chunk);
 
     /**
      * Get offset for the uploaded content.

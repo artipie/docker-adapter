@@ -40,6 +40,7 @@ import com.artipie.http.rq.RqParams;
 import com.artipie.http.rs.RsStatus;
 import com.artipie.http.rs.RsWithHeaders;
 import com.artipie.http.rs.RsWithStatus;
+import com.artipie.http.slice.ContentWithSize;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Optional;
@@ -198,7 +199,7 @@ public final class UploadEntity {
                 this.docker.repo(name).uploads().get(uuid).thenApply(
                     found -> found.<Response>map(
                         upload -> new AsyncResponse(
-                            upload.append(body).thenApply(
+                            upload.append(new ContentWithSize(body, headers)).thenApply(
                                 offset -> new StatusResponse(name, uuid, offset)
                             )
                         )

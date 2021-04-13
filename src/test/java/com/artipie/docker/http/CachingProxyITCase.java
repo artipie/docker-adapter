@@ -60,6 +60,7 @@ import org.junit.jupiter.api.condition.OS;
  */
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
 @DockerClientSupport
+@DisabledOnOs(OS.WINDOWS)
 final class CachingProxyITCase {
 
     /**
