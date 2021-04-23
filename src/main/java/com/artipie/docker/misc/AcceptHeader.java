@@ -31,8 +31,12 @@ import java.util.stream.Collectors;
 
 /**
  * The Accept request HTTP header values. For more details check
- * <a href="The Accept request HTTP header">documentation</a>.
+ * <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept">documentation</a>.
  * @since 0.15
+ * @todo #499:30min Better support of Accept HTTP header: accept header values can have
+ *  quality weight and should be ordered according to this weight. Let's support this feature
+ *  and move this functionality to http repository. For more information check documentation:
+ *  https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept
  */
 public final class AcceptHeader {
 
