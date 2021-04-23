@@ -149,7 +149,8 @@ class ManifestEntityGetTest {
         Headers() {
             super(
                 new Headers.From(
-                    new Header("Accept", "application/vnd.docker.distribution.manifest.v2+json")
+                    // @checkstyle LineLengthCheck (1 line)
+                    new Header("Accept", "application/vnd.docker.distribution.manifest.v2+json, application/xml;q=0.9, image/webp")
                 )
             );
         }

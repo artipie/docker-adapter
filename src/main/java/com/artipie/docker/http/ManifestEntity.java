@@ -28,6 +28,7 @@ import com.artipie.docker.Docker;
 import com.artipie.docker.RepoName;
 import com.artipie.docker.error.ManifestError;
 import com.artipie.docker.manifest.Manifest;
+import com.artipie.docker.misc.AcceptHeader;
 import com.artipie.docker.misc.RqByRegex;
 import com.artipie.docker.ref.ManifestRef;
 import com.artipie.http.Response;
@@ -39,7 +40,6 @@ import com.artipie.http.auth.Permissions;
 import com.artipie.http.headers.ContentLength;
 import com.artipie.http.headers.ContentType;
 import com.artipie.http.headers.Location;
-import com.artipie.http.rq.RqHeaders;
 import com.artipie.http.rs.RsStatus;
 import com.artipie.http.rs.RsWithBody;
 import com.artipie.http.rs.RsWithHeaders;
@@ -47,6 +47,7 @@ import com.artipie.http.rs.RsWithStatus;
 import com.artipie.http.rs.StandardRs;
 import java.nio.ByteBuffer;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 import org.reactivestreams.Publisher;
 
@@ -124,8 +125,8 @@ final class ManifestEntity {
          * @param headers Request headers
          * @return Accept headers
          */
-        private static RqHeaders acceptHeader(final Iterable<Map.Entry<String, String>> headers) {
-            return new RqHeaders(headers, "Accept");
+        private static Set<String> acceptHeader(final Iterable<Map.Entry<String, String>> headers) {
+            return new AcceptHeader(headers).values();
         }
     }
 
