@@ -25,6 +25,7 @@ package com.artipie.docker.manifest;
 
 import com.artipie.asto.ext.PublisherAs;
 import com.artipie.docker.Digest;
+import com.artipie.docker.error.InvalidManifestException;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
@@ -44,7 +45,7 @@ import org.junit.jupiter.api.Test;
  * @since 0.2
  * @checkstyle ClassDataAbstractionCouplingCheck (500 lines)
  */
-@SuppressWarnings("PMD.AvoidDuplicateLiterals")
+@SuppressWarnings({"PMD.AvoidDuplicateLiterals", "PMD.TooManyMethods"})
 class JsonManifestTest {
 
     @Test
@@ -56,6 +57,18 @@ class JsonManifestTest {
         MatcherAssert.assertThat(
             manifest.mediaType(),
             new IsEqual<>("something")
+        );
+    }
+
+    @Test
+    void shouldFailWhenMediaTypeIsAbsent() {
+        final JsonManifest manifest = new JsonManifest(
+            new Digest.Sha256("123"),
+            "{\"abc\":\"123\"}".getBytes()
+        );
+        Assertions.assertThrows(
+            InvalidManifestException.class,
+            manifest::mediaType
         );
     }
 
@@ -155,6 +168,18 @@ class JsonManifestTest {
                 .flatMap(layer -> layer.urls().stream())
                 .collect(Collectors.toList()),
             new IsIterableContaining<>(new IsEqual<>(new URL(url)))
+        );
+    }
+
+    @Test
+    void shouldFailWhenLayersAreAbsent() {
+        final JsonManifest manifest = new JsonManifest(
+            new Digest.Sha256("123"),
+            "{\"any\":\"value\"}".getBytes()
+        );
+        Assertions.assertThrows(
+            InvalidManifestException.class,
+            manifest::layers
         );
     }
 
