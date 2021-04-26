@@ -157,17 +157,30 @@ public final class AstoManifests implements Manifests {
             );
         }
         return CompletableFuture.allOf(
-            digests.map(
-                digest -> this.blobs.blob(digest).thenCompose(
-                    opt -> {
-                        if (!opt.isPresent()) {
-                            throw new InvalidManifestException(
-                                String.format("Blob does not exist: %s", digest)
-                            );
+            Stream.concat(
+                digests.map(
+                    digest -> this.blobs.blob(digest).thenCompose(
+                        opt -> {
+                            if (!opt.isPresent()) {
+                                throw new InvalidManifestException(
+                                    String.format("Blob does not exist: %s", digest)
+                                );
+                            }
+                            return CompletableFuture.allOf();
                         }
-                        return CompletableFuture.allOf();
-                    }
-                ).toCompletableFuture()
+                    ).toCompletableFuture()
+                ),
+                Stream.of(
+                    CompletableFuture.runAsync(
+                        () -> {
+                            if (manifest.mediaType().isEmpty()) {
+                                throw new InvalidManifestException(
+                                    "Required field `mediaType` is empty"
+                                );
+                            }
+                        }
+                    )
+                )
             ).toArray(CompletableFuture[]::new)
         );
     }

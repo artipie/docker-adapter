@@ -162,7 +162,7 @@ public final class AuthTest {
                 new Header("Content-Length", "0"),
                 new Header(
                     "Docker-Content-Digest",
-                    "sha256:02b9f91901050f814adfb19b1a8f5d599b07504998c2d665baa82e364322b566"
+                    "sha256:ef0ff2adcc3c944a63f7cafb386abc9a1d95528966085685ae9fab2a1c0bedbf"
                 )
             )
         );
@@ -179,7 +179,7 @@ public final class AuthTest {
                 new Header("Content-Length", "0"),
                 new Header(
                     "Docker-Content-Digest",
-                    "sha256:02b9f91901050f814adfb19b1a8f5d599b07504998c2d665baa82e364322b566"
+                    "sha256:ef0ff2adcc3c944a63f7cafb386abc9a1d95528966085685ae9fab2a1c0bedbf"
                 )
             )
         );
@@ -224,7 +224,7 @@ public final class AuthTest {
             .put(new TrustedBlobSource(content))
             .toCompletableFuture().join();
         final byte[] data = String.format(
-            "{\"config\":{\"digest\":\"%s\"},\"layers\":[]}",
+            "{\"config\":{\"digest\":\"%s\"},\"layers\":[],\"mediaType\":\"my-type\"}",
             config.digest().string()
         ).getBytes();
         return Flowable.just(ByteBuffer.wrap(data));

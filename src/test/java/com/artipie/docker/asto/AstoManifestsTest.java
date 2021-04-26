@@ -43,6 +43,7 @@ import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsEqual;
 import org.hamcrest.core.IsInstanceOf;
+import org.hamcrest.core.StringContains;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -102,24 +103,7 @@ final class AstoManifestsTest {
             .toCompletableFuture().join();
         final Blob layer = this.blobs.put(new TrustedBlobSource("layer".getBytes()))
             .toCompletableFuture().join();
-        final byte[] data = Json.createObjectBuilder()
-            .add(
-                "config",
-                Json.createObjectBuilder().add("digest", config.digest().string())
-            )
-            .add(
-                "layers",
-                Json.createArrayBuilder()
-                    .add(
-                        Json.createObjectBuilder().add("digest", layer.digest().string())
-                    )
-                    .add(
-                        Json.createObjectBuilder()
-                            .add("digest", "sha256:123")
-                            .add("urls", Json.createArrayBuilder().add("https://artipie.com/"))
-                    )
-            )
-            .build().toString().getBytes();
+        final byte[] data = this.getJsonBytes(config, layer, "my-type");
         final ManifestRef ref = new ManifestRef.FromTag(new Tag.Valid("some-tag"));
         final Manifest manifest = this.manifests.put(ref, new Content.From(data))
             .toCompletableFuture().join();
@@ -132,7 +116,35 @@ final class AstoManifestsTest {
 
     @Test
     @Timeout(5)
-    void shouldFailPutEmptyManifest() {
+    void shouldFailPutManifestIfMediaTypeIsEmpty() {
+        final Blob config = this.blobs.put(new TrustedBlobSource("config".getBytes()))
+            .toCompletableFuture().join();
+        final Blob layer = this.blobs.put(new TrustedBlobSource("layer".getBytes()))
+            .toCompletableFuture().join();
+        final byte[] data = this.getJsonBytes(config, layer, "");
+        final CompletionStage<Manifest> future = this.manifests.put(
+            new ManifestRef.FromTag(new Tag.Valid("ddd")),
+            new Content.From(data)
+        );
+        final CompletionException exception = Assertions.assertThrows(
+            CompletionException.class,
+            () -> future.toCompletableFuture().join()
+        );
+        MatcherAssert.assertThat(
+            "Exception cause should be instance of InvalidManifestException",
+            exception.getCause(),
+            new IsInstanceOf(InvalidManifestException.class)
+        );
+        MatcherAssert.assertThat(
+            "Exception does not contain expected message",
+            exception.getMessage(),
+            new StringContains("Required field `mediaType` is empty")
+        );
+    }
+
+    @Test
+    @Timeout(5)
+    void shouldFailPutInvalidManifest() {
         final CompletionStage<Manifest> future = this.manifests.put(
             new ManifestRef.FromTag(new Tag.Valid("ttt")),
             Content.EMPTY
@@ -163,5 +175,27 @@ final class AstoManifestsTest {
             .thenApply(Optional::get)
             .thenCompose(mnf -> new PublisherAs(mnf.content()).bytes())
             .toCompletableFuture().join();
+    }
+
+    private byte[] getJsonBytes(final Blob config, final Blob layer, final String mtype) {
+        return Json.createObjectBuilder()
+            .add(
+                "config",
+                Json.createObjectBuilder().add("digest", config.digest().string())
+            )
+            .add("mediaType", mtype)
+            .add(
+                "layers",
+                Json.createArrayBuilder()
+                    .add(
+                        Json.createObjectBuilder().add("digest", layer.digest().string())
+                    )
+                    .add(
+                        Json.createObjectBuilder()
+                            .add("digest", "sha256:123")
+                            .add("urls", Json.createArrayBuilder().add("https://artipie.com/"))
+                    )
+            )
+            .build().toString().getBytes();
     }
 }

@@ -25,6 +25,7 @@ package com.artipie.docker.manifest;
 
 import com.artipie.asto.Content;
 import com.artipie.docker.Digest;
+import com.artipie.docker.error.InvalidManifestException;
 import java.io.ByteArrayInputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -70,7 +71,10 @@ public final class JsonManifest implements Manifest {
 
     @Override
     public String mediaType() {
-        return this.json().getString("mediaType");
+        return Optional.ofNullable(this.json().getString("mediaType", null))
+            .orElseThrow(
+                () -> new InvalidManifestException("Required field `mediaType` is absent")
+            );
     }
 
     @Override
@@ -93,7 +97,9 @@ public final class JsonManifest implements Manifest {
 
     @Override
     public Collection<Layer> layers() {
-        return this.json().getJsonArray("layers").getValuesAs(JsonValue::asJsonObject).stream()
+        return Optional.ofNullable(this.json().getJsonArray("layers")).orElseThrow(
+            () -> new InvalidManifestException("Required field `layers` is absent")
+        ).getValuesAs(JsonValue::asJsonObject).stream()
             .map(JsonLayer::new)
             .collect(Collectors.toList());
     }
