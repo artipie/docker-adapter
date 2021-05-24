@@ -58,7 +58,7 @@ class ProxyBlobTest {
                 }
                 return new RsFull(
                     RsStatus.OK,
-                    new Headers.From(new ContentLength("4")),
+                    Headers.EMPTY,
                     new Content.From(data)
                 );
             },
