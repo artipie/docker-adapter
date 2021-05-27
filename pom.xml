@@ -50,6 +50,9 @@ SOFTWARE.
     <developerConnection>scm:git:ssh://github.com:artipie/docker-adapter.git</developerConnection>
     <url>https://github.com/artipie/docker-adapter/tree/master</url>
   </scm>
+  <properties>
+    <qulice.license>${project.basedir}/LICENSE.header</qulice.license>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>javax.json</groupId>
